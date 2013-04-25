@@ -36,7 +36,7 @@ public class JpgToBitmapPreprocessing extends Configured implements Tool {
     public void map(IntWritable key, IntWritable value, Context context)
       throws IOException, InterruptedException {
       
-      // Read in image data representation and create intermediate image data representation
+      // Read in image data and create intermediate image data representation
       
     }
   }
