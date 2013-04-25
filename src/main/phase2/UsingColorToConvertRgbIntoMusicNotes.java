@@ -138,4 +138,14 @@ public class UsingColorToConvertRgbIntoMusicNotes {
 
   }
 
+  /**
+   * Given saturation value
+   *   returns 0 - 8 indicating which octave
+   *   There are 9 octaves in the audible range
+   * @return
+   */
+  public static int saturationFloatToOctaveInt(float sat){
+    return (int) Math.floor(sat / (1.0 / OCTAVE_RANGE));
+  }
+
 }
