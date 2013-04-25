@@ -31,49 +31,80 @@ public class UsingColorToConvertRgbIntoMusicNotes {
 
     float[] blackHSBValues = getHSBValues(Color.BLACK);
     float[] whiteHSBValues = getHSBValues(Color.WHITE);
-    
+
     printHSBValues("Black", blackHSBValues);
     printHSBValues("White", whiteHSBValues);
-    
+
     float[] orangeHSBValues = getHSBValues(Color.ORANGE);
     printHSBValues("Orange", orangeHSBValues);
-    
+
     float[] redHSBValues = getHSBValues(Color.RED);
     printHSBValues("Red", redHSBValues);
-    
+
     Random r = new Random();
     for(int i = 0; i < 1000; i = i + 25){
       float val = (float) (i / 1000.0);
-      
+
       //float rand = r.nextFloat();
-      int tone = hueFloatToToneInt(val);
-      
-      
-    
-      System.out.println("tone: " + tone);
-      
+      int tone = hueFloatToNoteInt(val);
+
+      System.out.println("tone: " + getNoteFromToneNumber(tone));
       System.out.println();
-//      System.out.println("Float: " + rand + " ==> tone: " + hueFloatToToneInt(rand));
     }
-    
+
   }
   
+  public static int getMidiToneFromHSValues(float hue, float sat){
+    int note = hueFloatToNoteInt(hue);
+    
+    return 0;
+  }
+ 
+
   public static float[] getHSBValues(Color color){
     int redValue = color.getRed();
     int blueValue = color.getBlue();
     int greenValue = color.getGreen();
-  
+
     return Color.RGBtoHSB(redValue, greenValue, blueValue, null); 
   }
-  
+
   public static void printHSBValues(String colorName, float[] hsvals){
     System.out.println(colorName + " is:");
-    
+
     System.out.println("\tHue: " + hsvals[0]);
     System.out.println("\tSat: " + hsvals[1]);
     System.out.println("\tBrightness:" + hsvals[2]);
   }
   
+  /**
+   * Give a midi note number (0 - 120) returns the String name of the note
+   * @param toneNumber
+   * @return
+   */
+  public static String getNoteFromToneNumber(int toneNumber){
+    int baseTone = toneNumber % 12;
+    if(baseTone < 0 || baseTone > 11) {
+      return "Invalid Tone Number";
+    }
+    
+    switch(baseTone) {
+      case 0: return "C";
+      case 1: return "C#";
+      case 2: return "D";
+      case 3: return "D#";
+      case 4: return "E";
+      case 5: return "F";
+      case 6: return "F#";
+      case 7: return "G";
+      case 8: return "G#";
+      case 9: return "A";
+      case 10: return "A#";
+      //Case 11
+      default: return "B";
+    }
+  }
+
   /**
    * RGBtoHSB returns hue value as a float (I think between 0 and 1)
    * This float * 360 is the hue angle in the HSB model.
