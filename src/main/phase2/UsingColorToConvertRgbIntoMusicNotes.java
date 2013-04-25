@@ -23,7 +23,15 @@ public class UsingColorToConvertRgbIntoMusicNotes {
   public static final int A = 9;
   public static final int A_SHARP = 10;
   public static final int B = 11;
-  
+
+  /**
+   * The array maps a particular region (a 30 degree slice of a color wheel)
+   *    to the musical note it should represent in the 
+   *    virtuosoism model.
+   */
+  public static final int[] regionToMidiNote = {C, G, D, A, E, B, 
+                                                F_SHARP, C_SHARP, G_SHARP, D_SHARP, A_SHARP, F};
+
   /**
    * @param args
    */
