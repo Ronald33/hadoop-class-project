@@ -15,8 +15,6 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -35,27 +33,29 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
 
   
   // Mapper: emits ...
-  private static class PixelToToneMapper extends Mapper<LongWritable, Text, IntWritable, PairOfInts>{
+  private static class PixelToToneMapper extends Mapper<IntWritable, IntWritable, IntWritable, IntWritable>{
     private static final IntWritable IMAGE_REGION = new IntWritable();
     private static final PairOfInts NOTE = new PairOfInts();
 
 
-    public void map(LongWritable key, Text value, Context context)
+    public void map(IntWritable key, IntWritable value, Context context)
       throws IOException, InterruptedException {
+      
+      // Read in intermediate image data representation
       
     }
   }
   
   
   // Reducer: sums up ...
-  private static class PixelToToneReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+  private static class PixelToToneReducer extends Reducer<IntWritable, IntWritable, IntWritable, PairOfInts> {
     
     private static final IntWritable SUM = new IntWritable();
     
-    public void reduce(Text key, Iterable<IntWritable> values, Context context) 
+    public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) 
       throws IOException, InterruptedException {
       
-      // Sum up values
+      // Create MIDI output
       
     }
   }
@@ -117,15 +117,15 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     job.setOutputFormatClass(TextOutputFormat.class);
     
     job.setMapOutputKeyClass(IntWritable.class);
-    job.setMapOutputValueClass(PairOfInts.class);
+    job.setMapOutputValueClass(IntWritable.class);
     
     job.setOutputKeyClass(IntWritable.class);
-    job.setOutputValueClass(PairOfInts.class);
+    job.setOutputValueClass(IntWritable.class);
 
     job.setMapperClass(PixelToToneMapper.class);
     job.setReducerClass(PixelToToneReducer.class);
 
- // Delete the output directory if it exists already.
+    // Delete the output directory if it exists already.
     FileSystem.get(conf).delete(new Path(outputPath), true);
 
     job.waitForCompletion(true);
@@ -133,6 +133,7 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     return 0;
   }
 
+  
   /**
    * Dispatches command-line arguments to the tool via the {@code ToolRunner}.
    */
