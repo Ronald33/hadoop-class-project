@@ -2,7 +2,7 @@ package phase2;
 
 
 
-public class UsingColorToConvertRgbIntoMusicNotes {
+public class Color2Music {
 
   public static final int LOWEST_NOTE = 12;
   public static final int OCTAVE_RANGE = 9;
