@@ -1,16 +1,14 @@
 package phase2;
 
-import java.awt.Color;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
 
 
 public class UsingColorToConvertRgbIntoMusicNotes {
 
   public static final int LOWEST_NOTE = 12;
   public static final int OCTAVE_RANGE = 9;
+  public static final int VELOCITY_MIN = 60;
+  public static final int VELOCITY_MAX = 127;
+  public static final double MAX_VELOCITY_THRESHOLD = 0.9; 
   public static final int C = 0;
   public static final int C_SHARP = 1;
   public static final int D = 2;
@@ -30,52 +28,53 @@ public class UsingColorToConvertRgbIntoMusicNotes {
    *    virtuosoism model.
    */
   public static final int[] regionToMidiNote = {C, G, D, A, E, B, 
-                                                F_SHARP, C_SHARP, G_SHARP, D_SHARP, A_SHARP, F};
+    F_SHARP, C_SHARP, G_SHARP, D_SHARP, A_SHARP, F};
 
   /**
    * @param args
    */
   public static void main(String[] args) {
-
-    float[] blackHSBValues = getHSBValues(Color.BLACK);
-    float[] whiteHSBValues = getHSBValues(Color.WHITE);
-
-    printHSBValues("Black", blackHSBValues);
-    printHSBValues("White", whiteHSBValues);
-
-    float[] orangeHSBValues = getHSBValues(Color.ORANGE);
-    printHSBValues("Orange", orangeHSBValues);
-
-    float[] redHSBValues = getHSBValues(Color.RED);
-    printHSBValues("Red", redHSBValues);
-
-    Random r = new Random();
     for(int i = 0; i < 1000; i = i + 25){
-      float val = (float) (i / 1000.0);
-
-      //float rand = r.nextFloat();
-      int tone = hueFloatToNoteInt(val);
-
-      System.out.println("tone: " + getNoteFromToneNumber(tone));
-      System.out.println();
+      float brightness = i / (float) 1000;
+      
+      int velocity = brightnessFloatToVelocityInt(brightness);
+      
+      System.out.println("Brightness: " + brightness + " velocity: " + velocity);
     }
 
   }
-  
+
+  /**
+   * Returns the tone given the hue and saturation input values.
+   * 
+   * @param hue
+   * @param sat
+   * @return
+   */
   public static int getMidiToneFromHSValues(float hue, float sat){
     int note = hueFloatToNoteInt(hue);
+    int octave = saturationFloatToOctaveInt(sat);
+    int tone = note + (12 * octave);
+    return tone;
+  }
+  
+  
+  /**
+   * Returns the velocity (MIDI) given the brightness value
+   * @param brightness
+   * @return
+   */
+  public static int brightnessFloatToVelocityInt(float brightness){
+    int velocity = -1;
+    if(brightness > MAX_VELOCITY_THRESHOLD) velocity = 127;
+    else {
+      int positionInDiscreteVelocityRange = (int) Math.floor(brightness / (1.0 / (VELOCITY_MAX - VELOCITY_MIN)));
+      velocity = positionInDiscreteVelocityRange + VELOCITY_MIN;
+    }
     
-    return 0;
+    return velocity;
   }
- 
 
-  public static float[] getHSBValues(Color color){
-    int redValue = color.getRed();
-    int blueValue = color.getBlue();
-    int greenValue = color.getGreen();
-
-    return Color.RGBtoHSB(redValue, greenValue, blueValue, null); 
-  }
 
   public static void printHSBValues(String colorName, float[] hsvals){
     System.out.println(colorName + " is:");
@@ -84,7 +83,7 @@ public class UsingColorToConvertRgbIntoMusicNotes {
     System.out.println("\tSat: " + hsvals[1]);
     System.out.println("\tBrightness:" + hsvals[2]);
   }
-  
+
   /**
    * Give a midi note number (0 - 120) returns the String name of the note
    * @param toneNumber
@@ -95,21 +94,21 @@ public class UsingColorToConvertRgbIntoMusicNotes {
     if(baseTone < 0 || baseTone > 11) {
       return "Invalid Tone Number";
     }
-    
+
     switch(baseTone) {
-      case 0: return "C";
-      case 1: return "C#";
-      case 2: return "D";
-      case 3: return "D#";
-      case 4: return "E";
-      case 5: return "F";
-      case 6: return "F#";
-      case 7: return "G";
-      case 8: return "G#";
-      case 9: return "A";
-      case 10: return "A#";
-      //Case 11
-      default: return "B";
+    case 0: return "C";
+    case 1: return "C#";
+    case 2: return "D";
+    case 3: return "D#";
+    case 4: return "E";
+    case 5: return "F";
+    case 6: return "F#";
+    case 7: return "G";
+    case 8: return "G#";
+    case 9: return "A";
+    case 10: return "A#";
+    //Case 11
+    default: return "B";
     }
   }
 
@@ -123,19 +122,12 @@ public class UsingColorToConvertRgbIntoMusicNotes {
    * returned tone should be between 0 and 11 inclusive. 
    * @return
    */
-  public static int hueFloatToNoteInt(float hueFloat){
-
-    System.out.println("hueFLoat: " + hueFloat);
-
+  private static int hueFloatToNoteInt(float hueFloat){
     int hueAngle = (int) Math.floor(hueFloat * 360);
-    System.out.println("hueAngle: " + hueAngle);
-
     int region = hueAngle / 30;
     int tone = regionToMidiNote[region] + LOWEST_NOTE;
-    
-    
-    return tone;
 
+    return tone;
   }
 
   /**
@@ -144,7 +136,7 @@ public class UsingColorToConvertRgbIntoMusicNotes {
    *   There are 9 octaves in the audible range
    * @return
    */
-  public static int saturationFloatToOctaveInt(float sat){
+  private static int saturationFloatToOctaveInt(float sat){
     return (int) Math.floor(sat / (1.0 / OCTAVE_RANGE));
   }
 

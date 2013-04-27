@@ -8,5 +8,5 @@ thumb.write("images/road_thumb.jpg")
 
 # Dir.glob("*.jpg") do |fname|
 #    img = Magick::Image.read(fname)[0]
-#    img.thumbnail(0.10).write("#{fname}-thumb.jpg")
+#    img.thumbnail(3,3).write("#{fname}-thumb.jpg")
 # end   
