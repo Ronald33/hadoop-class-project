@@ -1,6 +1,9 @@
 package phase2;
 
+import java.awt.Color;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
@@ -14,7 +17,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -33,16 +38,45 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
 
   
   // Mapper: emits ...
-  private static class PixelToToneMapper extends Mapper<IntWritable, IntWritable, IntWritable, IntWritable>{
+  /**
+   * Input Key: Arbitrary Number
+   * Input Value: BytesWritable (representing an image) byte array dumped from a bufferedimage
+   *
+   * Output Key: Region Number (IntWritable)
+   * OutputValue: tone x velocity pair (PairOfIntWriable)
+   *
+   */
+  private static class PixelToToneMapper extends Mapper<NullWritable, BytesWritable, IntWritable, PairOfInts>{
     private static final IntWritable IMAGE_REGION = new IntWritable();
-    private static final PairOfInts NOTE = new PairOfInts();
+    private static final PairOfInts NOTE_VELOCITY = new PairOfInts();
 
 
-    public void map(IntWritable key, IntWritable value, Context context)
+    public void map(NullWritable key, BytesWritable bytes, Context context)
       throws IOException, InterruptedException {
       
       // Read in intermediate image data representation
+      ByteArrayInputStream bytesStream = new ByteArrayInputStream(bytes.getBytes());
+      ObjectInputStream ois = new ObjectInputStream(bytesStream);
+
+      int pixel = -1;
+      int regionCounter = 1;
+
+      while(ois.available() > 0){
+        LOG.info("Region counter #: " + regionCounter);
+        if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
+
+        pixel = ois.readInt();
+
+        MidiNote midiNote = Color2Music.convert(new Color(pixel));
+
+        IMAGE_REGION.set(regionCounter);
+        NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
+        context.write(IMAGE_REGION, NOTE_VELOCITY);
+
+        regionCounter++;
+      }
       
+      ois.close();
     }
   }
   
@@ -69,6 +103,7 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
   /**
    * Runs this tool.
    */
+  @SuppressWarnings("static-access")
   @Override
   public int run(String[] args) throws Exception {
     
@@ -117,8 +152,9 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     job.setOutputFormatClass(TextOutputFormat.class);
     
     job.setMapOutputKeyClass(IntWritable.class);
-    job.setMapOutputValueClass(IntWritable.class);
+    job.setMapOutputValueClass(PairOfInts.class);
     
+    // TODO : Not sure about the output class of this job.
     job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(IntWritable.class);
 
