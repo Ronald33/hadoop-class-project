@@ -1,8 +1,8 @@
 package phase2;
 
 public class MidiNote {
-  public int tone;
-  public int velocity;
+  private int tone;
+  private int velocity;
   
   public MidiNote(int t, int v){
     this.tone = t;
