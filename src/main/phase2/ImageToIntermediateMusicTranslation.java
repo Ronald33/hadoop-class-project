@@ -2,8 +2,10 @@ package phase2;
 
 import java.awt.Color;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
@@ -57,7 +59,6 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
       // Read in intermediate image data representation
       ByteArrayInputStream bytesStream = new ByteArrayInputStream(bytes.getBytes());
       ObjectInputStream ois = new ObjectInputStream(bytesStream);
-
       int pixel = -1;
       int regionCounter = 1;
 
@@ -82,14 +83,35 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
   
   
   // Reducer: sums up ...
-  private static class PixelToToneReducer extends Reducer<IntWritable, IntWritable, IntWritable, PairOfInts> {
+  private static class PixelToToneReducer extends Reducer<IntWritable, PairOfInts, IntWritable, BytesWritable> {
     
-    private static final IntWritable SUM = new IntWritable();
+//    private static final int MIN_NOTE_LENGTH = 2;
     
-    public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) 
+    public void reduce(IntWritable key, Iterable<PairOfInts> values, Context context) 
       throws IOException, InterruptedException {
       
-      // Create MIDI output
+      ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+      ObjectOutputStream out = new ObjectOutputStream(byteOut);
+      
+      int tone = -1;
+      int velocity = -1;
+      
+      for(PairOfInts pair : values){
+        
+        tone = pair.getLeftElement();
+        velocity = pair.getRightElement();
+        
+        out.writeInt(tone);
+        out.writeInt(velocity);
+        
+        
+      }
+      
+      out.close();
+      
+      BytesWritable MIDI_EVENTS = new BytesWritable(byteOut.toByteArray());
+      
+      context.write(key, MIDI_EVENTS);
       
     }
   }
@@ -156,7 +178,7 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     
     // TODO : Not sure about the output class of this job.
     job.setOutputKeyClass(IntWritable.class);
-    job.setOutputValueClass(IntWritable.class);
+    job.setOutputValueClass(BytesWritable.class);
 
     job.setMapperClass(PixelToToneMapper.class);
     job.setReducerClass(PixelToToneReducer.class);
