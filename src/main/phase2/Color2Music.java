@@ -1,5 +1,7 @@
 package phase2;
 
+import java.awt.Color;
+
 
 
 public class Color2Music {
@@ -8,7 +10,10 @@ public class Color2Music {
   public static final int OCTAVE_RANGE = 9;
   public static final int VELOCITY_MIN = 60;
   public static final int VELOCITY_MAX = 127;
-  public static final double MAX_VELOCITY_THRESHOLD = 0.9; 
+  /** HSB Value for brightness.  Above this threshold gets max velocity: 127 */
+  public static final double BRIGHTNESS_THRESHOLD_4_MAX_VELOCITY = 0.9;
+  /** Midi Velocity value. Below this threshold and tone gets -1 "rest" */
+  public static final double MIN_VELOCITY_THRESHOLD = 40;
   public static final int C = 0;
   public static final int C_SHARP = 1;
   public static final int D = 2;
@@ -21,7 +26,7 @@ public class Color2Music {
   public static final int A = 9;
   public static final int A_SHARP = 10;
   public static final int B = 11;
-
+ 
   /**
    * The array maps a particular region (a 30 degree slice of a color wheel)
    *    to the musical note it should represent in the 
@@ -30,20 +35,19 @@ public class Color2Music {
   public static final int[] regionToMidiNote = {C, G, D, A, E, B, 
     F_SHARP, C_SHARP, G_SHARP, D_SHARP, A_SHARP, F};
 
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    for(int i = 0; i < 1000; i = i + 25){
-      float brightness = i / (float) 1000;
-      
-      int velocity = brightnessFloatToVelocityInt(brightness);
-      
-      System.out.println("Brightness: " + brightness + " velocity: " + velocity);
+  public static MidiNote convert(Color c){
+    
+    float[] hsvals = Color.RGBtoHSB(c.getRed(), c.getGreen(), c.getBlue(), null);
+    int tone = -1;
+    int velocity = brightnessFloatToVelocityInt(hsvals[2]);
+    if(velocity > MIN_VELOCITY_THRESHOLD){
+      tone = getMidiToneFromHSValues(hsvals[0], hsvals[1]);
     }
 
+    return new MidiNote(tone, velocity);
   }
-
+  
+  
   /**
    * Returns the tone given the hue and saturation input values.
    * 
@@ -51,7 +55,7 @@ public class Color2Music {
    * @param sat
    * @return
    */
-  public static int getMidiToneFromHSValues(float hue, float sat){
+  private static int getMidiToneFromHSValues(float hue, float sat){
     int note = hueFloatToNoteInt(hue);
     int octave = saturationFloatToOctaveInt(sat);
     int tone = note + (12 * octave);
@@ -64,9 +68,9 @@ public class Color2Music {
    * @param brightness
    * @return
    */
-  public static int brightnessFloatToVelocityInt(float brightness){
+  private static int brightnessFloatToVelocityInt(float brightness){
     int velocity = -1;
-    if(brightness > MAX_VELOCITY_THRESHOLD) velocity = 127;
+    if(brightness > BRIGHTNESS_THRESHOLD_4_MAX_VELOCITY) velocity = 127;
     else {
       int positionInDiscreteVelocityRange = (int) Math.floor(brightness / (1.0 / (VELOCITY_MAX - VELOCITY_MIN)));
       velocity = positionInDiscreteVelocityRange + VELOCITY_MIN;
@@ -138,6 +142,20 @@ public class Color2Music {
    */
   private static int saturationFloatToOctaveInt(float sat){
     return (int) Math.floor(sat / (1.0 / OCTAVE_RANGE));
+  }
+
+  /**
+   * @param args
+   */
+  public static void main(String[] args) {
+    for(int i = 0; i < 1000; i = i + 25){
+      float brightness = i / (float) 1000;
+      
+      int velocity = brightnessFloatToVelocityInt(brightness);
+      
+      System.out.println("Brightness: " + brightness + " velocity: " + velocity);
+    }
+
   }
 
 }
