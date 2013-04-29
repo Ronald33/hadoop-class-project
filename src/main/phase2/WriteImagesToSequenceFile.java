@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 public class WriteImagesToSequenceFile {
   
   private static final String INPUT = "input";
+  private static final String OUTPUT = "output";
   private static final Logger LOG = Logger.getLogger(WriteImagesToSequenceFile.class);
 
   @SuppressWarnings("static-access")
@@ -42,10 +43,12 @@ public class WriteImagesToSequenceFile {
     
     // The sequence file uses <K, V> of types <NullWritable, BytesWritable>
     
-    // The image directory is input from the command line!
+    // Input and output directories are specified in the command line
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("input path").create(INPUT));
+    options.addOption(OptionBuilder.withArgName("path").hasArg()
+        .withDescription("output path").create(OUTPUT));
     
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -57,7 +60,7 @@ public class WriteImagesToSequenceFile {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(INPUT)) {
+    if (!cmdline.hasOption(INPUT) || (!cmdline.hasOption(OUTPUT))) {
       System.out.println("args: " + Arrays.toString(args));
       HelpFormatter formatter = new HelpFormatter();
       formatter.setWidth(120);
@@ -67,47 +70,51 @@ public class WriteImagesToSequenceFile {
     }
     
     String inputPath = cmdline.getOptionValue(INPUT);
+    String outputPath = cmdline.getOptionValue(OUTPUT);
     
     LOG.info("Tool name: " + WriteImagesToSequenceFile.class.getSimpleName());
     LOG.info(" - input: " + inputPath);
+    LOG.info(" - output: " + outputPath);
     
     Configuration conf = new Configuration();
-      FileSystem fs = FileSystem.get(conf);
-      FileStatus[] fss = fs.globStatus(new Path(inputPath + "*.jpg"));
-      BufferedImage img = null;
-      
+    FileSystem fs = FileSystem.get(conf);
+    FileStatus[] fss = fs.globStatus(new Path(inputPath + "*.jpg"));
+    Path outPath = new Path(outputPath);
+    BufferedImage img = null;
+    SequenceFile.Writer writer = null;
+    
+    try {
+      writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, BytesWritable.class);
+        
       // Read each image and write its data to the sequence file
       for (FileStatus status : fss) {
-        Path path = status.getPath();
-        SequenceFile.Writer writer = null;
-        try { 
-          writer = SequenceFile.createWriter(fs, conf, path, NullWritable.class, BytesWritable.class);
-          ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-          ObjectOutput out = new ObjectOutputStream(bOut);
-          
-          // I'm not entirely sure status.toString() will work...
-          img = ImageIO.read(new File(status.toString()));
-          
-          // Get the RBG integer for each pixel in 3X3
-          for(int i = 0; i < 3; i++) {
-            for(int j = 0; j < 3; j++) {
-              System.out.println("Reading pixel: i = " + i + ", j = " + j);
-              out.writeInt(img.getRGB(i, j));
-            }
-          }
-          out.close();
-          
-          // Make a BytesWritable with the output stream data
-          BytesWritable BW = new BytesWritable(bOut.toByteArray());
-          bOut.close();
-  
-          // Write to the sequence file
-          writer.append(NullWritable.get(), BW);
-        } finally {
-          IOUtils.closeStream(writer);
+      ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+      ObjectOutput out = new ObjectOutputStream(bOut);
+            
+      // I'm not entirely sure status.toString() will work...
+      img = ImageIO.read(new File(status.toString()));
+            
+      // Get the RBG integer for each pixel in 3X3
+      for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 3; j++) {
+          //System.out.println("Reading pixel: i = " + i + ", j = " + j);
+          out.writeInt(img.getRGB(i, j));
+        }
       }
-    }  
+      out.close();
+          
+      // Make a BytesWritable with the output stream data
+      BytesWritable BW = new BytesWritable(bOut.toByteArray());
+      bOut.close();
+  
+      // Write to the sequence file
+      writer.append(NullWritable.get(), BW);
+      } 
+    } finally {
+          IOUtils.closeStream(writer);
+    }
+  }  
     
-  }
 }
+
 
