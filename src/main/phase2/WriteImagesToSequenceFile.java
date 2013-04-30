@@ -3,7 +3,6 @@ package phase2;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
@@ -18,6 +17,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -25,17 +25,20 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
-public class WriteImagesToSequenceFile {
+public class WriteImagesToSequenceFile extends Configured implements Tool {
   
   private static final String INPUT = "input";
   private static final String OUTPUT = "output";
   private static final Logger LOG = Logger.getLogger(WriteImagesToSequenceFile.class);
 
-  @SuppressWarnings("static-access")
-  public static void main(String[] args) throws IOException {
+  private WriteImagesToSequenceFile() {}
+  
+  @SuppressWarnings({ "static-access" })
+  public int run(String[] args) throws Exception {
   
     // This program reads each 3X3 image from a directory 
     // and writes its RGB data to a sequence file 
@@ -84,6 +87,7 @@ public class WriteImagesToSequenceFile {
     SequenceFile.Writer writer = null;
     
     try {
+      //writer = SequenceFile.creatWriter(fc, conf, outPath, NullWritable.class, BytesWritable.class);
       writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, BytesWritable.class);
         
       // Read each image and write its data to the sequence file
@@ -92,7 +96,9 @@ public class WriteImagesToSequenceFile {
       ObjectOutput out = new ObjectOutputStream(bOut);
             
       // I'm not entirely sure status.toString() will work...
-      img = ImageIO.read(new File(status.toString()));
+      Path inPath = status.getPath();
+      System.out.println("status.getPath(): "+inPath);
+      img = ImageIO.read(new File(status.getPath().toString()));
             
       // Get the RBG integer for each pixel in 3X3
       for(int i = 0; i < 3; i++) {
@@ -113,7 +119,12 @@ public class WriteImagesToSequenceFile {
     } finally {
           IOUtils.closeStream(writer);
     }
-  }  
+    return 0;
+  } 
+  
+  public static void main(String[] args) throws Exception {
+    ToolRunner.run(new WriteImagesToSequenceFile(), args);
+  }
     
 }
 
