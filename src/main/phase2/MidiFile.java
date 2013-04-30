@@ -46,7 +46,7 @@ public class MidiFile {
 	// A MIDI event to set the tempo
 	static final int tempoEvent[] = new int[] {
 		0x00, 0xFF, 0x51, 0x03,
-		0x0F, 0x42, 0x40 // Default 1 million usec per crotchet
+		0x07, 0xA1, 0x20 // Default 1 million usec per crotchet
 	};
 
 	// A MIDI event to set the key signature. This is irrelent to
