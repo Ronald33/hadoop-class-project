@@ -28,7 +28,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
@@ -38,7 +38,7 @@ import edu.umd.cloud9.io.pair.PairOfInts;
 public class ImageToIntermediateMusicTranslation extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(ImageToIntermediateMusicTranslation.class);
 
-  
+
   // Mapper: emits ...
   /**
    * Input Key: Arbitrary Number
@@ -54,15 +54,17 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
 
 
     public void map(NullWritable key, BytesWritable bytes, Context context)
-      throws IOException, InterruptedException {
-      
+        throws IOException, InterruptedException {
+
       // Read in intermediate image data representation
       ByteArrayInputStream bytesStream = new ByteArrayInputStream(bytes.getBytes());
       ObjectInputStream ois = new ObjectInputStream(bytesStream);
       int pixel = -1;
       int regionCounter = 1;
 
-      while(ois.available() > 0){
+      System.out.println("Starting loop over ObjectInputStream...");
+
+      for(int i = 1; i <= 9; i++){
         LOG.info("Region counter #: " + regionCounter);
         if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
 
@@ -75,62 +77,86 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
         context.write(IMAGE_REGION, NOTE_VELOCITY);
 
         regionCounter++;
+
       }
-      
+
+      System.out.println("Try to close ObjectInputStream....");
       ois.close();
+      System.out.println("Closed ObjectInputStream....");
     }
+
+    //      
+    //      while(ois.available() > 0){
+    //        LOG.info("Region counter #: " + regionCounter);
+    //        if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
+    //
+    //        pixel = ois.readInt();
+    //
+    //        MidiNote midiNote = Color2Music.convert(new Color(pixel));
+    //
+    //        IMAGE_REGION.set(regionCounter);
+    //        NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
+    //        context.write(IMAGE_REGION, NOTE_VELOCITY);
+    //
+    //        regionCounter++;
+    //      }
+    //      
+    //      System.out.println("Try to close ObjectInputStream....");
+    //      ois.close();
+    //      System.out.println("Closed ObjectInputStream....");
+    //    }
   }
-  
-  
+
+
   // Reducer: sums up ...
   private static class PixelToToneReducer extends Reducer<IntWritable, PairOfInts, IntWritable, BytesWritable> {
-    
-//    private static final int MIN_NOTE_LENGTH = 2;
-    
+
+    //    private static final int MIN_NOTE_LENGTH = 2;
+
     public void reduce(IntWritable key, Iterable<PairOfInts> values, Context context) 
-      throws IOException, InterruptedException {
-      
+        throws IOException, InterruptedException {
+
       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
       ObjectOutputStream out = new ObjectOutputStream(byteOut);
-      
+
       int tone = -1;
       int velocity = -1;
-      
+
       for(PairOfInts pair : values){
-        
+
         tone = pair.getLeftElement();
         velocity = pair.getRightElement();
-        
+
         out.writeInt(tone);
         out.writeInt(velocity);
-        
-        
+
+
       }
-      
+
       out.close();
-      
+
       BytesWritable MIDI_EVENTS = new BytesWritable(byteOut.toByteArray());
-      
+
       context.write(key, MIDI_EVENTS);
-      
+
     }
   }
-  
+
   public ImageToIntermediateMusicTranslation() {
   }
-  
+
   private static final String INPUT = "input";
   private static final String OUTPUT = "output";
-  
+
   /**
    * Runs this tool.
    */
   @SuppressWarnings("static-access")
   @Override
   public int run(String[] args) throws Exception {
-    
+
     Options options = new Options();
-    
+
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("input path").create(INPUT));
     options.addOption(OptionBuilder.withArgName("path").hasArg()
@@ -157,25 +183,25 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
 
     String inputPath = cmdline.getOptionValue(INPUT);
     String outputPath = cmdline.getOptionValue(OUTPUT);
-    
+
     LOG.info("Tool: " + ImageToIntermediateMusicTranslation.class.getSimpleName());
     LOG.info(" - input path: " + inputPath);
     LOG.info(" - output path: " + outputPath);
-    
+
     Configuration conf = getConf();
     Job job = Job.getInstance(conf);
     job.setJobName(ImageToIntermediateMusicTranslation.class.getName() + ":" + inputPath);
     job.setJarByClass(ImageToIntermediateMusicTranslation.class);
-    
+
     FileInputFormat.addInputPath(job, new Path(inputPath));
     FileOutputFormat.setOutputPath(job, new Path(outputPath));
-    
+
     job.setInputFormatClass(SequenceFileInputFormat.class);
-    job.setOutputFormatClass(TextOutputFormat.class);
-    
+    job.setOutputFormatClass(SequenceFileOutputFormat.class);
+
     job.setMapOutputKeyClass(IntWritable.class);
     job.setMapOutputValueClass(PairOfInts.class);
-    
+
     // TODO : Not sure about the output class of this job.
     job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(BytesWritable.class);
@@ -187,11 +213,11 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     FileSystem.get(conf).delete(new Path(outputPath), true);
 
     job.waitForCompletion(true);
-    
+
     return 0;
   }
 
-  
+
   /**
    * Dispatches command-line arguments to the tool via the {@code ToolRunner}.
    */

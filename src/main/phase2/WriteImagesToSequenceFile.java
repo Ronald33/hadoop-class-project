@@ -27,32 +27,31 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
 
-public class WriteImagesToSequenceFile extends Configured implements Tool {
-  
+public class WriteImagesToSequenceFile {
+
   private static final String INPUT = "input";
   private static final String OUTPUT = "output";
-  private static final Logger LOG = Logger.getLogger(WriteImagesToSequenceFile.class);
+  //  private static final Logger LOG = Logger.getLogger(WriteImagesToSequenceFile.class);
 
   private WriteImagesToSequenceFile() {}
-  
+
   @SuppressWarnings({ "static-access" })
-  public int run(String[] args) throws Exception {
-  
+  public static void main(String[] args) throws Exception {
+
     // This program reads each 3X3 image from a directory 
     // and writes its RGB data to a sequence file 
     // where each line encodes one image.
-    
+
     // The sequence file uses <K, V> of types <NullWritable, BytesWritable>
-    
+
     // Input and output directories are specified in the command line
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("input path").create(INPUT));
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("output path").create(OUTPUT));
-    
+
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
 
@@ -71,61 +70,73 @@ public class WriteImagesToSequenceFile extends Configured implements Tool {
       ToolRunner.printGenericCommandUsage(System.out);
       System.exit(-1);
     }
-    
+
     String inputPath = cmdline.getOptionValue(INPUT);
     String outputPath = cmdline.getOptionValue(OUTPUT);
-    
-    LOG.info("Tool name: " + WriteImagesToSequenceFile.class.getSimpleName());
-    LOG.info(" - input: " + inputPath);
-    LOG.info(" - output: " + outputPath);
-    
+
+    System.out.println("inputPath:" + inputPath);
+
+    //    LOG.info("Tool name: " + WriteImagesToSequenceFile.class.getSimpleName());
+    //    LOG.info(" - input: " + inputPath);
+    //    LOG.info(" - output: " + outputPath);
+
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    FileStatus[] fss = fs.globStatus(new Path(inputPath + "*.jpg"));
+
+    
+    FileStatus[] fss = fs.globStatus(new Path(inputPath + "/*.jpg"));
+    System.out.println("fss length: " + fss.length);
+    
     Path outPath = new Path(outputPath);
     BufferedImage img = null;
     SequenceFile.Writer writer = null;
-    
+
     try {
+      System.out.println("inside try");
       //writer = SequenceFile.creatWriter(fc, conf, outPath, NullWritable.class, BytesWritable.class);
       writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, BytesWritable.class);
-        
+
       // Read each image and write its data to the sequence file
       for (FileStatus status : fss) {
-      ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-      ObjectOutput out = new ObjectOutputStream(bOut);
-            
-      // I'm not entirely sure status.toString() will work...
-      Path inPath = status.getPath();
-      System.out.println("status.getPath(): "+inPath);
-      img = ImageIO.read(new File(status.getPath().toString()));
-            
-      // Get the RBG integer for each pixel in 3X3
-      for(int i = 0; i < 3; i++) {
-        for(int j = 0; j < 3; j++) {
-          //System.out.println("Reading pixel: i = " + i + ", j = " + j);
-          out.writeInt(img.getRGB(i, j));
+        System.out.println("Inside FileStatus iterator");
+        ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+        ObjectOutput out = new ObjectOutputStream(bOut);
+
+        // I'm not entirely sure status.toString() will work...
+        Path inPath = status.getPath();
+        System.out.println("status.getPath(): "+inPath);
+        File f = new File(inPath.toString());
+        
+        
+        img = ImageIO.read(new File(status.getPath().toString().substring(5)));
+
+
+        // Get the RBG integer for each pixel in 3X3
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 3; j++) {
+            //System.out.println("Reading pixel: i = " + i + ", j = " + j);
+            out.writeInt(img.getRGB(i, j));
+          }
         }
-      }
-      out.close();
-          
-      // Make a BytesWritable with the output stream data
-      BytesWritable BW = new BytesWritable(bOut.toByteArray());
-      bOut.close();
-  
-      // Write to the sequence file
-      writer.append(NullWritable.get(), BW);
+        out.close();
+
+        // Make a BytesWritable with the output stream data
+        BytesWritable BW = new BytesWritable(bOut.toByteArray());
+        bOut.close();
+
+        // Write to the sequence file
+        writer.append(NullWritable.get(), BW);
       } 
     } finally {
-          IOUtils.closeStream(writer);
+      IOUtils.closeStream(writer);
     }
-    return 0;
+    //    return 0;
   } 
-  
-  public static void main(String[] args) throws Exception {
-    ToolRunner.run(new WriteImagesToSequenceFile(), args);
-  }
-    
+
+  //  public static void main(String[] args) throws Exception {
+  //    ToolRunner.run(new WriteImagesToSequenceFile(), args);
+  //  }
+  //    
 }
 
 
