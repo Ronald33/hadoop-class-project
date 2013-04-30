@@ -87,6 +87,7 @@ public class WriteImagesToSequenceFile extends Configured implements Tool {
     SequenceFile.Writer writer = null;
     
     try {
+      //writer = SequenceFile.creatWriter(fc, conf, outPath, NullWritable.class, BytesWritable.class);
       writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, BytesWritable.class);
         
       // Read each image and write its data to the sequence file
@@ -95,7 +96,9 @@ public class WriteImagesToSequenceFile extends Configured implements Tool {
       ObjectOutput out = new ObjectOutputStream(bOut);
             
       // I'm not entirely sure status.toString() will work...
-      img = ImageIO.read(new File(status.toString()));
+      Path inPath = status.getPath();
+      System.out.println("status.getPath(): "+inPath);
+      img = ImageIO.read(new File(status.getPath().toString()));
             
       // Get the RBG integer for each pixel in 3X3
       for(int i = 0; i < 3; i++) {
