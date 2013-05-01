@@ -1,8 +1,6 @@
 package phase2;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
@@ -15,11 +13,12 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
+
+import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
 
 /** This program reads midi notes stored as a bytes array in a sequence file
  * The notes are in the format tone number followed by velocity represented as ints.
@@ -81,73 +80,35 @@ public class ReadMusicNotesFromSequenceFile {
     System.out.println("inputPath: '" + inputPath + "'");
     Path path = new Path(inputPath);
     
+    @SuppressWarnings("deprecation")
     SequenceFile.Reader reader = new SequenceFile.Reader(FileSystem.get(config), path, config);
     IntWritable key = (IntWritable) reader.getKeyClass().newInstance();
-    BytesWritable value = (BytesWritable) reader.getValueClass().newInstance();
-    
-    byte[] bytes = null;
+    ArrayListOfIntsWritable notesArray = (ArrayListOfIntsWritable) reader.getValueClass().newInstance();
+      
     int partCounter = 1;
     
-    
-//    boolean alreadyRead = false;
-    while (reader.next(key, value)){
-      // perform some operating
-//      if(alreadyRead) LOG.info("Should only have one line in this file");
-      bytes = value.getBytes();
-      
-      
-      ByteArrayInputStream bytesInStream = new ByteArrayInputStream(bytes);
-      ObjectInputStream ois = new ObjectInputStream(bytesInStream);
-      
-      
+    //Read all the lines
+    while(reader.next(key, notesArray)){
       int tone = -1;
       int velocity = -1;
-      MidiFile mf = new MidiFile();
       
-      for(int i = 0; i < 47; i++){
-        tone = ois.readInt();
-        velocity = ois.readInt();
+      MidiFile mf = new MidiFile();
+
+      // Read note information 2 ints at a time
+      for(int i = 0; i < notesArray.size() - 1; i = i + 2){
         
-        mf.noteOnOffNow(4, tone, velocity);
+        tone = notesArray.get(i);
+        velocity = notesArray.get(i + 1);
+        mf.noteOnOffNow(2, tone, velocity);
+        
       }
       
-      mf.writeToFile(outputPath + "/midiout" + partCounter +  ".mid");
-      
+      mf.writeToFile(outputPath + "/midiout" + partCounter + ".mid");
       partCounter++;
-      
-      
     }
-
+    
     reader.close();
-
-//    
-//    ByteArrayInputStream bytesInStream = new ByteArrayInputStream(bytes);
-//    ObjectInputStream ois = new ObjectInputStream(bytesInStream);
-//    
-//    
-//    int tone = -1;
-//    int velocity = -1;
-//    MidiFile mf = new MidiFile();
-//    
-//    for(int i = 0; i < 47; i++){
-//      tone = ois.readInt();
-//      velocity = ois.readInt();
-//      
-//      mf.noteOnOffNow(4, tone, velocity);
-//    }
     
-    
-//    while(ois.available() > 0){
-//      tone = ois.readInt();
-//      velocity = ois.readInt();
-//      
-//      mf.noteOnOffNow(4, tone, velocity);
-//    }
-    
-//    mf.writeToFile(outputPath + "/midiout.mid");
-    
-
-  
   }  
 
 }

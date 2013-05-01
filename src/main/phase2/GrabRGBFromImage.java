@@ -29,8 +29,8 @@ public class GrabRGBFromImage {
     }
 
     // Get the RGB integer for each pixel in 3X3
-    for(int i = 0; i < 3; i++) {
-      for(int j = 0; j < 3; j++) {
+    for(int j = 0; j < 3; j++) {
+      for(int i = 0; i < 3; i++) {
         System.out.println("Reading pixel: i = " + i + ", j = " + j);
         out.writeInt(img.getRGB(i, j));
       }
@@ -60,28 +60,6 @@ public class GrabRGBFromImage {
     }
 
     ois.close();
-
-
-    //    Color c = new Color(img.getRGB(1,1));
-    //    // Return individual red, green, and blue colors as values b/t 0 and 255
-    //    int red = c.getRed();
-    //    int green = c.getGreen();
-    //    int blue = c.getBlue();
-    //    
-    //    System.out.println("red: "+red);
-    //    System.out.println("green: "+green);
-    //    System.out.println("blue: "+blue);
-    //    
-    //    // Resize image to 3X3 pixels
-    //    BufferedImage scaledImg = new BufferedImage(3,3,BufferedImage.TYPE_INT_RGB);
-    //    Graphics2D g = scaledImg.createGraphics();
-    //    g.drawImage(img,0,0,3,3,null);
-    //    g.dispose();
-    //    File outputfile = new File("data/oneScaled.jpg");
-    //    try {
-    //      ImageIO.write(scaledImg,  "jpg", outputfile);
-    //    } catch (IOException e) {
-    //    }
 
   }
 

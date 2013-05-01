@@ -1,10 +1,7 @@
 package phase2;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.util.Arrays;
 
 import javax.imageio.ImageIO;
@@ -17,16 +14,15 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
+import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
 
 public class WriteImagesToSequenceFile {
 
@@ -36,7 +32,7 @@ public class WriteImagesToSequenceFile {
 
   private WriteImagesToSequenceFile() {}
 
-  @SuppressWarnings({ "static-access" })
+  @SuppressWarnings({ "static-access", "deprecation" })
   public static void main(String[] args) throws Exception {
 
     // This program reads each 3X3 image from a directory 
@@ -94,20 +90,14 @@ public class WriteImagesToSequenceFile {
     try {
       System.out.println("inside try");
       //writer = SequenceFile.creatWriter(fc, conf, outPath, NullWritable.class, BytesWritable.class);
-      writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, BytesWritable.class);
+      writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, ArrayListOfIntsWritable.class);
 
       // Read each image and write its data to the sequence file
       for (FileStatus status : fss) {
         System.out.println("Inside FileStatus iterator");
-        ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-        ObjectOutput out = new ObjectOutputStream(bOut);
+        ArrayListOfIntsWritable pixelData = new ArrayListOfIntsWritable();
 
-        // I'm not entirely sure status.toString() will work...
-        Path inPath = status.getPath();
-        System.out.println("status.getPath(): "+inPath);
-        File f = new File(inPath.toString());
-        
-        
+        // FIXME : substring removes "file:" from the path string
         img = ImageIO.read(new File(status.getPath().toString().substring(5)));
 
 
@@ -115,17 +105,12 @@ public class WriteImagesToSequenceFile {
         for(int i = 0; i < 3; i++) {
           for(int j = 0; j < 3; j++) {
             //System.out.println("Reading pixel: i = " + i + ", j = " + j);
-            out.writeInt(img.getRGB(i, j));
+            pixelData.add(img.getRGB(i,j));
           }
         }
-        out.close();
-
-        // Make a BytesWritable with the output stream data
-        BytesWritable BW = new BytesWritable(bOut.toByteArray());
-        bOut.close();
 
         // Write to the sequence file
-        writer.append(NullWritable.get(), BW);
+        writer.append(NullWritable.get(), pixelData);
       } 
     } finally {
       IOUtils.closeStream(writer);
