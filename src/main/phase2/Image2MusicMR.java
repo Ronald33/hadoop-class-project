@@ -1,11 +1,7 @@
 package phase2;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
@@ -19,7 +15,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -33,6 +28,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
+import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
 import edu.umd.cloud9.io.pair.PairOfInts;
 
 public class Image2MusicMR extends Configured implements Tool {
@@ -48,96 +44,63 @@ public class Image2MusicMR extends Configured implements Tool {
    * OutputValue: tone x velocity pair (PairOfIntWriable)
    *
    */
-  private static class PixelToToneMapper extends Mapper<NullWritable, BytesWritable, IntWritable, PairOfInts>{
+  private static class PixelToToneMapper extends Mapper<NullWritable, ArrayListOfIntsWritable, IntWritable, PairOfInts>{
     private static final IntWritable IMAGE_REGION = new IntWritable();
     private static final PairOfInts NOTE_VELOCITY = new PairOfInts();
 
 
-    public void map(NullWritable key, BytesWritable bytes, Context context)
+    public void map(NullWritable key, ArrayListOfIntsWritable pixels, Context context)
         throws IOException, InterruptedException {
 
       // Read in intermediate image data representation
-      ByteArrayInputStream bytesStream = new ByteArrayInputStream(bytes.getBytes());
-      ObjectInputStream ois = new ObjectInputStream(bytesStream);
       int pixel = -1;
       int regionCounter = 1;
+      MidiNote midiNote = null;
 
       System.out.println("Starting loop over ObjectInputStream...");
-
-      for(int i = 1; i <= 9; i++){
+      
+      for(int i = 0; i < pixels.size(); i++){
         LOG.info("Region counter #: " + regionCounter);
         if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
 
-        pixel = ois.readInt();
-
-        MidiNote midiNote = Color2Music.convert(new Color(pixel));
+        pixel = pixels.get(i);
+        midiNote = Color2Music.convert(new Color(pixel));
 
         IMAGE_REGION.set(regionCounter);
         NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
         context.write(IMAGE_REGION, NOTE_VELOCITY);
 
-        regionCounter++;
-
+        regionCounter++;        
       }
 
-      System.out.println("Try to close ObjectInputStream....");
-      ois.close();
-      System.out.println("Closed ObjectInputStream....");
     }
 
-    //      
-    //      while(ois.available() > 0){
-    //        LOG.info("Region counter #: " + regionCounter);
-    //        if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
-    //
-    //        pixel = ois.readInt();
-    //
-    //        MidiNote midiNote = Color2Music.convert(new Color(pixel));
-    //
-    //        IMAGE_REGION.set(regionCounter);
-    //        NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
-    //        context.write(IMAGE_REGION, NOTE_VELOCITY);
-    //
-    //        regionCounter++;
-    //      }
-    //      
-    //      System.out.println("Try to close ObjectInputStream....");
-    //      ois.close();
-    //      System.out.println("Closed ObjectInputStream....");
-    //    }
   }
 
 
   // Reducer: sums up ...
-  private static class PixelToToneReducer extends Reducer<IntWritable, PairOfInts, IntWritable, BytesWritable> {
+  private static class PixelToToneReducer extends Reducer<IntWritable, PairOfInts, IntWritable, ArrayListOfIntsWritable> {
 
     //    private static final int MIN_NOTE_LENGTH = 2;
 
     public void reduce(IntWritable key, Iterable<PairOfInts> values, Context context) 
         throws IOException, InterruptedException {
 
-      ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-      ObjectOutputStream out = new ObjectOutputStream(byteOut);
-
       int tone = -1;
       int velocity = -1;
-
+      ArrayListOfIntsWritable musicInfo = new ArrayListOfIntsWritable();
+      
       for(PairOfInts pair : values){
 
         tone = pair.getLeftElement();
         velocity = pair.getRightElement();
 
-        out.writeInt(tone);
-        out.writeInt(velocity);
-
+        musicInfo.add(tone);
+        musicInfo.add(velocity);
 
       }
 
-      out.close();
-
-      BytesWritable MIDI_EVENTS = new BytesWritable(byteOut.toByteArray());
-
-      context.write(key, MIDI_EVENTS);
+      context.write(key, musicInfo);
 
     }
   }
@@ -204,7 +167,7 @@ public class Image2MusicMR extends Configured implements Tool {
 
     // TODO : Not sure about the output class of this job.
     job.setOutputKeyClass(IntWritable.class);
-    job.setOutputValueClass(BytesWritable.class);
+    job.setOutputValueClass(ArrayListOfIntsWritable.class);
 
     job.setMapperClass(PixelToToneMapper.class);
     job.setReducerClass(PixelToToneReducer.class);
