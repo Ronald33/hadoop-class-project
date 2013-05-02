@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""Usage: python wallpaper.py [OPTIONS] TAGS
+"""Usage: python getSets.py [OPTIONS] TAGS
 TAGS is a space delimited list of tags
 
 OPTIONS:
