@@ -102,8 +102,8 @@ public class WriteImagesToSequenceFile {
 
 
         // Get the RBG integer for each pixel in 3X3
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++) {
+        for(int j = 0; j < 3; j++) {
+          for(int i = 0; i < 3; i++) {
             //System.out.println("Reading pixel: i = " + i + ", j = " + j);
             pixelData.add(img.getRGB(i,j));
           }
