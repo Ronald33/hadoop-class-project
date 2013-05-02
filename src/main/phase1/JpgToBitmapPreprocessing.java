@@ -51,6 +51,7 @@ public class JpgToBitmapPreprocessing extends Configured implements Tool {
   /**
    * Runs this tool.
    */
+  @SuppressWarnings("static-access")
   @Override
   public int run(String[] args) throws Exception {
     
