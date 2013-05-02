@@ -35,8 +35,8 @@ import org.apache.log4j.Logger;
 
 import edu.umd.cloud9.io.pair.PairOfInts;
 
-public class ImageToIntermediateMusicTranslation extends Configured implements Tool {
-  private static final Logger LOG = Logger.getLogger(ImageToIntermediateMusicTranslation.class);
+public class Image2MusicMR extends Configured implements Tool {
+  private static final Logger LOG = Logger.getLogger(Image2MusicMR.class);
 
 
   // Mapper: emits ...
@@ -142,7 +142,7 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     }
   }
 
-  public ImageToIntermediateMusicTranslation() {
+  public Image2MusicMR() {
   }
 
   private static final String INPUT = "input";
@@ -184,14 +184,14 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
     String inputPath = cmdline.getOptionValue(INPUT);
     String outputPath = cmdline.getOptionValue(OUTPUT);
 
-    LOG.info("Tool: " + ImageToIntermediateMusicTranslation.class.getSimpleName());
+    LOG.info("Tool: " + Image2MusicMR.class.getSimpleName());
     LOG.info(" - input path: " + inputPath);
     LOG.info(" - output path: " + outputPath);
 
     Configuration conf = getConf();
     Job job = Job.getInstance(conf);
-    job.setJobName(ImageToIntermediateMusicTranslation.class.getName() + ":" + inputPath);
-    job.setJarByClass(ImageToIntermediateMusicTranslation.class);
+    job.setJobName(Image2MusicMR.class.getName() + ":" + inputPath);
+    job.setJarByClass(Image2MusicMR.class);
 
     FileInputFormat.addInputPath(job, new Path(inputPath));
     FileOutputFormat.setOutputPath(job, new Path(outputPath));
@@ -222,7 +222,7 @@ public class ImageToIntermediateMusicTranslation extends Configured implements T
    * Dispatches command-line arguments to the tool via the {@code ToolRunner}.
    */
   public static void main(String[] args) throws Exception{
-    ToolRunner.run(new ImageToIntermediateMusicTranslation(), args);
+    ToolRunner.run(new Image2MusicMR(), args);
   }
 
 }
