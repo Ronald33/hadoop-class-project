@@ -6,8 +6,8 @@ import java.awt.Color;
 
 public class Color2Music {
 
-  public static final int LOWEST_NOTE = 24;
-  public static final int OCTAVE_RANGE = 8;
+  public static final int LOWEST_NOTE = 36;
+  public static final int OCTAVE_RANGE = 6;
   public static final int VELOCITY_MIN = 60;
   public static final int VELOCITY_MAX = 127;
   /** HSB Value for brightness.  Above this threshold gets max velocity: 127 */
