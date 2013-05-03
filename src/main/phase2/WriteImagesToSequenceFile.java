@@ -70,7 +70,8 @@ public class WriteImagesToSequenceFile {
     String inputPath = cmdline.getOptionValue(INPUT);
     String outputPath = cmdline.getOptionValue(OUTPUT);
 
-    System.out.println("inputPath:" + inputPath);
+    System.out.println("inputPath: '" + inputPath + "'");
+    System.out.println("outputPath: '" + outputPath + "'");
 
     //    LOG.info("Tool name: " + WriteImagesToSequenceFile.class.getSimpleName());
     //    LOG.info(" - input: " + inputPath);
