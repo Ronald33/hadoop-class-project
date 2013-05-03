@@ -26,9 +26,7 @@ import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
 
 public class WriteImagesToSequenceFile {
 
-  private static final String INPUT = "input";
-  private static final String OUTPUT = "output";
-  //  private static final Logger LOG = Logger.getLogger(WriteImagesToSequenceFile.class);
+  private static final String BASE_PATH = "base";
 
   private WriteImagesToSequenceFile() {}
 
@@ -44,9 +42,7 @@ public class WriteImagesToSequenceFile {
     // Input and output directories are specified in the command line
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
-        .withDescription("input path").create(INPUT));
-    options.addOption(OptionBuilder.withArgName("path").hasArg()
-        .withDescription("output path").create(OUTPUT));
+        .withDescription("base").create(BASE_PATH));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -58,7 +54,7 @@ public class WriteImagesToSequenceFile {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(INPUT) || (!cmdline.hasOption(OUTPUT))) {
+    if (!cmdline.hasOption(BASE_PATH)) {
       System.out.println("args: " + Arrays.toString(args));
       HelpFormatter formatter = new HelpFormatter();
       formatter.setWidth(120);
@@ -67,30 +63,23 @@ public class WriteImagesToSequenceFile {
       System.exit(-1);
     }
 
-    String inputPath = cmdline.getOptionValue(INPUT);
-    String outputPath = cmdline.getOptionValue(OUTPUT);
+    String basePath = cmdline.getOptionValue(BASE_PATH);
 
-    System.out.println("inputPath: '" + inputPath + "'");
-    System.out.println("outputPath: '" + outputPath + "'");
-
-    //    LOG.info("Tool name: " + WriteImagesToSequenceFile.class.getSimpleName());
-    //    LOG.info(" - input: " + inputPath);
-    //    LOG.info(" - output: " + outputPath);
-
+    System.out.println("basetPath: '" + basePath + "'");
+    
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
 
     
-    FileStatus[] fss = fs.globStatus(new Path(inputPath + "/*.jpg"));
+    FileStatus[] fss = fs.globStatus(new Path(basePath + "/thumbs/*.jpg"));
     System.out.println("fss length: " + fss.length);
     
-    Path outPath = new Path(outputPath);
+    Path outPath = new Path(basePath + "/sequence");
     BufferedImage img = null;
     SequenceFile.Writer writer = null;
 
     try {
       System.out.println("inside try");
-      //writer = SequenceFile.creatWriter(fc, conf, outPath, NullWritable.class, BytesWritable.class);
       writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, ArrayListOfIntsWritable.class);
 
       // Read each image and write its data to the sequence file
@@ -119,10 +108,6 @@ public class WriteImagesToSequenceFile {
     //    return 0;
   } 
 
-  //  public static void main(String[] args) throws Exception {
-  //    ToolRunner.run(new WriteImagesToSequenceFile(), args);
-  //  }
-  //    
 }
 
 
