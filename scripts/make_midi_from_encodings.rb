@@ -1,3 +1,18 @@
+# Script to run full pipeline
+# 
+# Requirements:
+# 	ImageMagick - library
+# 	RMagick - RubyGem
+# 	OptParse - RubyGem
+# 	
+# 	Regular Hadoop Requirements
+# 
+# Notes:
+# 
+# 	Run 'ruby -Iscripts make_midi_from_source.rb -i <base_path>'
+# 	
+#
+
 require 'optparse'
 require 'make_thumbnails'
 
@@ -8,22 +23,25 @@ opt_parser = OptionParser.new do |opt|
   opt.banner = "Usage: opt_parser COMMAND [OPTIONS]"
   opt.separator  ""
 
-  opt.on("-i","--input-directory INPATH", "Directory with encoded images") do |i|
+  opt.on("-i","--base-directory BASEPATH", "Base directory: Contains /source") do |i|
     opts[:i] = i
   end
 
-  opt.on("-o","--output-directory OUTPATH", "Directory to put output") do |o|
-    opts[:o] = o
-  end
+  # Probably don't need this
+  # opt.on("-o","--output-directory OUTPATH", "Directory to put output") do |o|
+  #   opts[:o] = o
+  # end
 
-  opt.on("-n","--chord-size SIZE", Numeric, "Notes per region") do |n|
-    opts[:n] = n
-  end
-
-  opt.on("-r","--number-regions SIZE", Numeric, "Number of image/musical regions") do |r|
-    opts[:r] = r
-  end
-
+  # Unused for now:
+  # 
+  # opt.on("-n","--chord-size SIZE", Numeric, "Notes per region") do |n|
+  #   opts[:n] = n
+  # end
+  # 
+  # opt.on("-r","--number-regions SIZE", Numeric, "Number of image/musical regions") do |r|
+  #   opts[:r] = r
+  # end
+  # 
   # opt.on("-t", "--test", "Run in test mode.") do
   # 	opts[:test] = true
   # end
