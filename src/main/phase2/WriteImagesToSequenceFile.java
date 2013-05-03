@@ -64,17 +64,16 @@ public class WriteImagesToSequenceFile {
     }
 
     String basePath = cmdline.getOptionValue(BASE_PATH);
-
-    System.out.println("basetPath: '" + basePath + "'");
-    
+    String inputPath = basePath + "/thumbs";
+    String outputPath = basePath + "/sequence";
+        
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
 
-    
-    FileStatus[] fss = fs.globStatus(new Path(basePath + "/thumbs/*.jpg"));
+    FileStatus[] fss = fs.globStatus(new Path(inputPath + "/*.jpg"));
     System.out.println("fss length: " + fss.length);
     
-    Path outPath = new Path(basePath + "/sequence");
+    Path outPath = new Path(outputPath);
     BufferedImage img = null;
     SequenceFile.Writer writer = null;
 

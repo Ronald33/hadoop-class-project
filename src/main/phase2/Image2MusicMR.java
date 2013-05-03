@@ -145,19 +145,22 @@ public class Image2MusicMR extends Configured implements Tool {
     }
 
     String basePath = cmdline.getOptionValue(BASE_PATH);
+    String inputPath = basePath + "/sequence";
+    String outputPath = basePath + "/music";
 //    String outputPath = cmdline.getOptionValue(OUTPUT);
 
     LOG.info("Tool: " + Image2MusicMR.class.getSimpleName());
     LOG.info(" - basePath: " + basePath);
-//    LOG.info(" - output path: " + outputPath);
+    LOG.info(" - inputPath: " + inputPath);
+    LOG.info(" - output path: " + outputPath);
 
     Configuration conf = getConf();
     Job job = Job.getInstance(conf);
     job.setJobName(Image2MusicMR.class.getName() + ":" + basePath);
     job.setJarByClass(Image2MusicMR.class);
 
-    FileInputFormat.addInputPath(job, new Path(basePath + "/sequence"));
-    FileOutputFormat.setOutputPath(job, new Path(basePath + "/music"));
+    FileInputFormat.addInputPath(job, new Path(inputPath));
+    FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
     job.setInputFormatClass(SequenceFileInputFormat.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -173,7 +176,7 @@ public class Image2MusicMR extends Configured implements Tool {
     job.setReducerClass(PixelToToneReducer.class);
 
     // Delete the output directory if it exists already.
-    FileSystem.get(conf).delete(new Path(basePath + "/music"), true);
+    FileSystem.get(conf).delete(new Path(outputPath), true);
 
     job.waitForCompletion(true);
 

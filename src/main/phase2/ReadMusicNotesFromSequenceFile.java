@@ -32,8 +32,8 @@ import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
  */
 public class ReadMusicNotesFromSequenceFile {
 
-  private static final String INPUT = "input";
-  private static final String OUTPUT = "output";
+  private static final String BASE_PATH = "base";
+//  private static final String OUTPUT = "output";
   private static final Logger LOG = Logger.getLogger(ReadMusicNotesFromSequenceFile.class);
 
   @SuppressWarnings("static-access")
@@ -46,9 +46,9 @@ public class ReadMusicNotesFromSequenceFile {
     // Input and output directories are specified in the command line
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
-        .withDescription("input path").create(INPUT));
-    options.addOption(OptionBuilder.withArgName("path").hasArg()
-        .withDescription("output path").create(OUTPUT));
+        .withDescription("base").create(BASE_PATH));
+//    options.addOption(OptionBuilder.withArgName("path").hasArg()
+//        .withDescription("output path").create(OUTPUT));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -60,7 +60,7 @@ public class ReadMusicNotesFromSequenceFile {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(INPUT) || (!cmdline.hasOption(OUTPUT))) {
+    if (!cmdline.hasOption(BASE_PATH)) {
       System.out.println("args: " + Arrays.toString(args));
       HelpFormatter formatter = new HelpFormatter();
       formatter.setWidth(120);
@@ -69,15 +69,17 @@ public class ReadMusicNotesFromSequenceFile {
       System.exit(-1);
     }
 
-    String inputPath = cmdline.getOptionValue(INPUT);
-    String outputPath = cmdline.getOptionValue(OUTPUT);
+    String basePath = cmdline.getOptionValue(BASE_PATH);
+    String inputPath = basePath + "/music";
+    String outputPath = basePath + "/midi";
+    
 
     LOG.info("Tool name: " + WriteImagesToSequenceFile.class.getSimpleName());
-    LOG.info(" - input: " + inputPath);
+    LOG.info(" - basePath: " + basePath);
+    LOG.info(" - inputPath: " + inputPath);
     LOG.info(" - output: " + outputPath);
 
     Configuration config = new Configuration();
-    System.out.println("inputPath: '" + inputPath + "'");
     Path path = new Path(inputPath);
     
     @SuppressWarnings("deprecation")
