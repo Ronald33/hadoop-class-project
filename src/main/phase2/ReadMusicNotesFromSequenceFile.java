@@ -70,7 +70,7 @@ public class ReadMusicNotesFromSequenceFile {
     }
 
     String basePath = cmdline.getOptionValue(BASE_PATH);
-    String inputPath = basePath + "/music";
+    String inputPath = basePath + "/music/part-r-00000";
     String outputPath = basePath + "/midi";
     
 
@@ -86,7 +86,12 @@ public class ReadMusicNotesFromSequenceFile {
     SequenceFile.Reader reader = new SequenceFile.Reader(FileSystem.get(config), path, config);
     IntWritable key = (IntWritable) reader.getKeyClass().newInstance();
     ArrayListOfIntsWritable notesArray = (ArrayListOfIntsWritable) reader.getValueClass().newInstance();
-      
+    
+    // Make midi directory if its not there
+    //  Hadoop does this for us, but we're writing with MidiFile this time
+    FileSystem.get(config).mkdirs(new Path(outputPath));
+    
+    
     int partCounter = 1;
     
     //Read all the lines
