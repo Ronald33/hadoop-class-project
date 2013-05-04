@@ -33,7 +33,7 @@ import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
 public class ReadMusicNotesFromSequenceFile {
 
   private static final String BASE_PATH = "base";
-//  private static final String OUTPUT = "output";
+  private static final String MIN_LENGTH = "note_length";
   private static final Logger LOG = Logger.getLogger(ReadMusicNotesFromSequenceFile.class);
 
   @SuppressWarnings("static-access")
@@ -47,9 +47,9 @@ public class ReadMusicNotesFromSequenceFile {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("base").create(BASE_PATH));
-//    options.addOption(OptionBuilder.withArgName("path").hasArg()
-//        .withDescription("output path").create(OUTPUT));
-
+    options.addOption(OptionBuilder.withArgName("note_length").hasArg()
+        .withDescription("note_length").create(MIN_LENGTH));
+    
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
 
@@ -60,7 +60,7 @@ public class ReadMusicNotesFromSequenceFile {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(BASE_PATH)) {
+    if (!cmdline.hasOption(BASE_PATH) || !cmdline.hasOption(MIN_LENGTH)) {
       System.out.println("args: " + Arrays.toString(args));
       HelpFormatter formatter = new HelpFormatter();
       formatter.setWidth(120);
@@ -70,6 +70,7 @@ public class ReadMusicNotesFromSequenceFile {
     }
 
     String basePath = cmdline.getOptionValue(BASE_PATH);
+    int minLength = Integer.parseInt(cmdline.getOptionValue(MIN_LENGTH));
     String inputPath = basePath + "/music/part-r-00000";
     String outputPath = basePath + "/midi";
     
@@ -106,7 +107,7 @@ public class ReadMusicNotesFromSequenceFile {
         
         tone = notesArray.get(i);
         velocity = notesArray.get(i + 1);
-        mf.noteOnOffNow(2, tone, velocity);
+        mf.noteOnOffNow(minLength, tone, velocity);
         
       }
       
