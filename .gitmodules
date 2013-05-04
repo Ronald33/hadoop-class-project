@@ -1,3 +1,0 @@
-[submodule "test_sets"]
-	path = test_sets
-	url = git@github.com:cimbriano/test_sets.git
