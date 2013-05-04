@@ -27,6 +27,11 @@ opt_parser = OptionParser.new do |opt|
     opts[:i] = i
   end
 
+  opt.on("-c","--compile-java COMPILE", "Flag to compile java or not") do |c|
+    opts[:c] = c
+  end
+
+
   # Probably don't need this
   # opt.on("-o","--output-directory OUTPATH", "Directory to put output") do |o|
   #   opts[:o] = o
@@ -94,7 +99,11 @@ ThumbMaker.convert_thumbs(base_path)
 puts "\nWriting encodings to SequenceFile..."
 
 # 'ant compile' has to have run before this
-`ant`
+if opts[:c]
+	puts "Running 'ant'"
+	`ant`
+end
+
 `java -classpath #{classpath} phase2.WriteImagesToSequenceFile -base #{base_path}`
 
 # Write encodings to SequenceFile
