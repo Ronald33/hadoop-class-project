@@ -3,6 +3,7 @@ package phase2;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -16,7 +17,6 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -29,7 +29,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
-import edu.umd.cloud9.io.pair.PairOfInts;
 
 public class Image2MusicMR extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(Image2MusicMR.class);
@@ -37,19 +36,21 @@ public class Image2MusicMR extends Configured implements Tool {
 
   // Mapper: emits ...
   /**
-   * Input Key: Arbitrary Number
+   * Input Key: IntWritable image ordering value as set by WriteImagesToSequenceFile
    * Input Value: BytesWritable (representing an image) byte array dumped from a bufferedimage
    *
    * Output Key: Region Number (IntWritable)
    * OutputValue: tone x velocity pair (PairOfIntWriable)
    *
    */
-  private static class PixelToToneMapper extends Mapper<NullWritable, ArrayListOfIntsWritable, IntWritable, PairOfInts>{
+  private static class PixelToToneMapper extends Mapper<IntWritable, ArrayListOfIntsWritable, IntWritable, ArrayListOfIntsWritable>{
     private static final IntWritable IMAGE_REGION = new IntWritable();
-    private static final PairOfInts NOTE_VELOCITY = new PairOfInts();
+    //private static final PairOfInts NOTE_VELOCITY = new PairOfInts();
+    private static final ArrayListOfIntsWritable NOTE_INFO = new ArrayListOfIntsWritable();
 
 
-    public void map(NullWritable key, ArrayListOfIntsWritable pixels, Context context)
+
+    public void map(IntWritable key, ArrayListOfIntsWritable pixels, Context context)
         throws IOException, InterruptedException {
 
       // Read in intermediate image data representation
@@ -67,8 +68,13 @@ public class Image2MusicMR extends Configured implements Tool {
         midiNote = Color2Music.convert(new Color(pixel));
 
         IMAGE_REGION.set(regionCounter);
-        NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
-        context.write(IMAGE_REGION, NOTE_VELOCITY);
+        //NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
+        NOTE_INFO.add(key.get());
+        NOTE_INFO.add(midiNote.getTone());
+        NOTE_INFO.add(midiNote.getVelocity());
+        
+        //context.write(IMAGE_REGION, NOTE_VELOCITY);
+        context.write(IMAGE_REGION, NOTE_INFO);
 
         regionCounter++;        
       }
@@ -79,18 +85,33 @@ public class Image2MusicMR extends Configured implements Tool {
 
 
   // Reducer: sums up ...
-  private static class PixelToToneReducer extends Reducer<IntWritable, PairOfInts, IntWritable, ArrayListOfIntsWritable> {
+  private static class PixelToToneReducer extends Reducer<IntWritable, ArrayListOfIntsWritable, IntWritable, ArrayListOfIntsWritable> {
 
     //    private static final int MIN_NOTE_LENGTH = 2;
 
-    public void reduce(IntWritable key, Iterable<PairOfInts> values, Context context) 
+    public void reduce(IntWritable key, Iterable<ArrayListOfIntsWritable> values, Context context) 
         throws IOException, InterruptedException {
 
       int tone = -1;
       int velocity = -1;
+      
+      // Assumption: we can define an iterator on this writable type
+      Iterator<ArrayListOfIntsWritable> iter = values.iterator();
+      ArrayListOfIntsWritable region = new ArrayListOfIntsWritable();
       ArrayListOfIntsWritable musicInfo = new ArrayListOfIntsWritable();
       
-      for(PairOfInts pair : values){
+      while (iter.hasNext()) {
+    	  region = iter.next();
+    	  if(region.size() > 2) {
+    		  tone = region.get(1);
+    		  velocity = region.get(2);
+    		  
+    		  musicInfo.add(tone);
+    	      musicInfo.add(velocity);
+    	  }  
+      }
+      
+      /*for(PairOfInts pair : values){
 
         tone = pair.getLeftElement();
         velocity = pair.getRightElement();
@@ -98,7 +119,7 @@ public class Image2MusicMR extends Configured implements Tool {
         musicInfo.add(tone);
         musicInfo.add(velocity);
 
-      }
+      }*/
 
       context.write(key, musicInfo);
 
@@ -166,7 +187,7 @@ public class Image2MusicMR extends Configured implements Tool {
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
     job.setMapOutputKeyClass(IntWritable.class);
-    job.setMapOutputValueClass(PairOfInts.class);
+    job.setMapOutputValueClass(ArrayListOfIntsWritable.class);
 
     // TODO : Not sure about the output class of this job.
     job.setOutputKeyClass(IntWritable.class);
