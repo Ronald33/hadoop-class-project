@@ -3,7 +3,6 @@ package phase2;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -29,6 +28,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
+import edu.umd.cloud9.io.pair.PairOfInts;
 
 public class Image2MusicMR extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(Image2MusicMR.class);
@@ -83,54 +83,47 @@ public class Image2MusicMR extends Configured implements Tool {
 
   }
 
+  /*
+   * Input key : PairOfInts <Region number, Image Number>  
+   *       values : list of <Tone number, Velocity Number>
+   *       
+   * Output key : IntWritable <Region number>
+   *        value : ArrayListOfIntsWritable <music info note, velocity, note, velocity....)>
+   *
+   */
+  private static class PixelToToneReducer extends Reducer<PairOfInts, PairOfInts, IntWritable, ArrayListOfIntsWritable> {
 
-  // Reducer: sums up ...
-  private static class PixelToToneReducer extends Reducer<IntWritable, ArrayListOfIntsWritable, IntWritable, ArrayListOfIntsWritable> {
+    private static IntWritable regionNumber;
+    private static ArrayListOfIntsWritable musicInfo;
+    
+    public void setup(Context context){
+      musicInfo = new ArrayListOfIntsWritable();
+    }
 
-    //    private static final int MIN_NOTE_LENGTH = 2;
-
-    public void reduce(IntWritable key, Iterable<ArrayListOfIntsWritable> values, Context context) 
-        throws IOException, InterruptedException {
-
+    public void reduce(PairOfInts key, Iterable<PairOfInts> values, Context context) {
+      
+      regionNumber.set(key.getLeftElement());
       int tone = -1;
       int velocity = -1;
       
-      // Assumption: we can define an iterator on this writable type
-      Iterator<ArrayListOfIntsWritable> iter = values.iterator();
-      ArrayListOfIntsWritable region = new ArrayListOfIntsWritable();
-      ArrayListOfIntsWritable musicInfo = new ArrayListOfIntsWritable();
-      
-      while (iter.hasNext()) {
-    	  region = iter.next();
-    	  if(region.size() > 2) {
-    		  tone = region.get(1);
-    		  velocity = region.get(2);
-    		  
-    		  musicInfo.add(tone);
-    	      musicInfo.add(velocity);
-    	  }  
-      }
-      
-      /*for(PairOfInts pair : values){
-
+      for(PairOfInts pair : values){
         tone = pair.getLeftElement();
         velocity = pair.getRightElement();
-
+        
         musicInfo.add(tone);
         musicInfo.add(velocity);
+      }
 
-      }*/
-
-      context.write(key, musicInfo);
-
+    }
+    
+    public void cleanup(Context context) throws IOException, InterruptedException{
+      context.write(regionNumber, musicInfo);
     }
   }
 
-  public Image2MusicMR() {
-  }
+  public Image2MusicMR() {  }
 
   private static final String BASE_PATH = "base";
-//  private static final String OUTPUT = "output";
 
   /**
    * Runs this tool.
@@ -143,8 +136,6 @@ public class Image2MusicMR extends Configured implements Tool {
 
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("base").create(BASE_PATH));
-//    options.addOption(OptionBuilder.withArgName("path").hasArg()
-//        .withDescription("output path").create(OUTPUT));
 
     CommandLine cmdline;
     CommandLineParser parser = new GnuParser();
@@ -168,7 +159,7 @@ public class Image2MusicMR extends Configured implements Tool {
     String basePath = cmdline.getOptionValue(BASE_PATH);
     String inputPath = basePath + "/sequence";
     String outputPath = basePath + "/music";
-//    String outputPath = cmdline.getOptionValue(OUTPUT);
+    //    String outputPath = cmdline.getOptionValue(OUTPUT);
 
     LOG.info("Tool: " + Image2MusicMR.class.getSimpleName());
     LOG.info(" - basePath: " + basePath);
