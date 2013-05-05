@@ -94,6 +94,7 @@ public class ReadMusicNotesFromSequenceFile {
     
     
     int partCounter = 1;
+    int noteCounter = 0;
     
     //Read all the lines
     while(reader.next(key, notesArray)){
@@ -107,12 +108,22 @@ public class ReadMusicNotesFromSequenceFile {
         
         tone = notesArray.get(i);
         velocity = notesArray.get(i + 1);
+        
+        
         mf.noteOnOffNow(minLength, tone, velocity);
         
+        System.out.println("Region : " + partCounter + " Tone: " + tone + " velocity: " + velocity);
+        noteCounter++;
       }
       
+      
       mf.writeToFile(outputPath + "/midiout" + partCounter + ".mid");
+      System.out.println("******Region: " + partCounter + " had " + noteCounter + " notes.");
+
       partCounter++;
+      noteCounter = 0;
+      
+      
     }
     
     reader.close();

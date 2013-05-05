@@ -61,7 +61,7 @@ public class Image2MusicMR extends Configured implements Tool {
       System.out.println("Starting loop over ObjectInputStream...");
       
       for(int i = 0; i < pixels.size(); i++){
-        LOG.info("Region counter #: " + regionCounter);
+//        LOG.info("Region counter #: " + regionCounter);
         if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
 
         pixel = pixels.get(i);
@@ -97,30 +97,62 @@ public class Image2MusicMR extends Configured implements Tool {
    */
   private static class PixelToToneReducer extends Reducer<PairOfInts, PairOfInts, IntWritable, ArrayListOfIntsWritable> {
 
-    private static IntWritable regionNumber;
-    private static ArrayListOfIntsWritable musicInfo;
+    //Initialized with the first region number
+    private static IntWritable regionNumber = new IntWritable(1);
+    
+    private static ArrayListOfIntsWritable musicInfo = new ArrayListOfIntsWritable();
     
     public void setup(Context context){
-      musicInfo = new ArrayListOfIntsWritable();
+//      musicInfo = new ArrayListOfIntsWritable();
+      
     }
 
-    public void reduce(PairOfInts key, Iterable<PairOfInts> values, Context context) {
+    public void reduce(PairOfInts key, Iterable<PairOfInts> values, Context context) throws IOException, InterruptedException {
+      LOG.info("Region: " + key.getLeftElement());
+      LOG.info("Image Number: " + key.getRightElement());
       
-      regionNumber.set(key.getLeftElement());
-      int tone = -1;
-      int velocity = -1;
-      
-      for(PairOfInts pair : values){
-        tone = pair.getLeftElement();
-        velocity = pair.getRightElement();
+      //Check if its a new region
+      if(regionNumber.get() == key.getLeftElement()){
+        //This key is for the current region
+        // ie still building up the ArrayList of music info
         
-        musicInfo.add(tone);
-        musicInfo.add(velocity);
+        for(PairOfInts pair : values){
+          //Tone
+          musicInfo.add(pair.getLeftElement());
+          
+          //Velocity
+          musicInfo.add(pair.getRightElement());
+        }
+        
+        
+      } else {
+        
+        
+        
+        //Already added everything for that region
+        context.write(regionNumber, musicInfo);
+        
+        //Start new region
+        regionNumber.set(key.getLeftElement());
+        //Get a new array list, (to avoid problem of emitting the same object over and over)
+        musicInfo = new ArrayListOfIntsWritable();
+        
+        
+        //Puts the first note of the new region   in the new array
+        for(PairOfInts pair : values){
+          //Tone
+          musicInfo.add(pair.getLeftElement());
+          
+          //Velocity
+          musicInfo.add(pair.getRightElement());
+        }
+        
       }
 
     }
     
     public void cleanup(Context context) throws IOException, InterruptedException{
+      //Write out the last one
       context.write(regionNumber, musicInfo);
     }
   }
