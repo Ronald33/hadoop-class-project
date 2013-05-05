@@ -52,22 +52,35 @@
        it into ant's lib dir (note that the latter copy will always take precedence).
        We will not fail as long as local lib dir exists (it may be empty) and
        ivy is in at least one of ant's lib dir or the local lib dir. -->
-  <target name="install-ivy" depends="download-ivy" description="--> install ivy">
+   <target name="install-ivy" depends="download-ivy" description="install ivy">
     <path id="ivy.lib.path">
       <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
     </path>
     <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
   </target>
 
-  <target name="resolve" depends="install-ivy" description="--> retreive dependencies with ivy">
+  <target name="resolve" depends="install-ivy" description="retreive dependencies with ivy">
     <ivy:retrieve/>
   </target>
 
-  <target name="report" depends="resolve" description="--> generates a report of dependencies">
+  <target name="report" depends="resolve" description="generates a report of dependencies">
       <ivy:report todir="${build.dir}"/>
   </target>
 
-  <target name="compile" depends="init,resolve" description="compile the source ">
+  <target name="compile" depends="init,resolve" description="compile the source">
+    <javac classpathref="lib.path.id" srcdir="${src.dir}/main/" destdir="${build.dir}" optimize="on" debug="on" includeantruntime="false">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+    <javac classpathref="lib.path.id" srcdir="${src.dir}/test/" destdir="${build.dir}" optimize="on" debug="on" includeantruntime="false">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+    <copy todir="${build.dir}">
+      <fileset dir="${src.dir}/main/" excludes="**/*.java" />
+      <fileset dir="${src.dir}/test/" excludes="**/*.java" />
+    </copy>
+  </target>
+
+  <target name="local-compile" depends="init" description="compile the source">
     <javac classpathref="lib.path.id" srcdir="${src.dir}/main/" destdir="${build.dir}" optimize="on" debug="on" includeantruntime="false">
       <compilerarg value="-Xlint:unchecked" />
     </javac>
