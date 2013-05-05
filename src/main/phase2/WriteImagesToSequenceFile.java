@@ -18,7 +18,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -37,7 +37,7 @@ public class WriteImagesToSequenceFile {
     // and writes its RGB data to a sequence file 
     // where each line encodes one image.
 
-    // The sequence file uses <K, V> of types <NullWritable, BytesWritable>
+    // The sequence file uses <K, V> of types <IntWritable, ArrayListOfIntsWritable>
 
     // Input and output directories are specified in the command line
     Options options = new Options();
@@ -76,14 +76,17 @@ public class WriteImagesToSequenceFile {
     Path outPath = new Path(outputPath);
     BufferedImage img = null;
     SequenceFile.Writer writer = null;
+    int counter = 1;
 
     try {
       System.out.println("inside try");
-      writer = SequenceFile.createWriter(fs, conf, outPath, NullWritable.class, ArrayListOfIntsWritable.class);
+      writer = SequenceFile.createWriter(fs, conf, outPath, IntWritable.class, ArrayListOfIntsWritable.class);
 
+      
       // Read each image and write its data to the sequence file
       for (FileStatus status : fss) {
         System.out.println("Inside FileStatus iterator");
+        IntWritable image_counter = new IntWritable();
         ArrayListOfIntsWritable pixelData = new ArrayListOfIntsWritable();
 
         // FIXME : substring removes "file:" from the path string
@@ -99,7 +102,9 @@ public class WriteImagesToSequenceFile {
         }
 
         // Write to the sequence file
-        writer.append(NullWritable.get(), pixelData);
+        image_counter.set(counter);
+        writer.append(image_counter, pixelData);
+        counter += 1;
       } 
     } finally {
       IOUtils.closeStream(writer);
