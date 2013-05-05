@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -29,6 +30,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
+import edu.umd.cloud9.io.pair.PairOfInts;
 
 public class Image2MusicMR extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(Image2MusicMR.class);
@@ -37,17 +39,16 @@ public class Image2MusicMR extends Configured implements Tool {
   // Mapper: emits ...
   /**
    * Input Key: IntWritable image ordering value as set by WriteImagesToSequenceFile
-   * Input Value: BytesWritable (representing an image) byte array dumped from a bufferedimage
+   * Input Value: ArrayListOfIntsWritable containing the RGB information for an image 
    *
-   * Output Key: Region Number (IntWritable)
-   * OutputValue: tone x velocity pair (PairOfIntWriable)
+   * Output Key: Region Number x image ordering value (PairOfInts)
+   * OutputValue: tone x velocity pair (PairOfInts)
    *
    */
-  private static class PixelToToneMapper extends Mapper<IntWritable, ArrayListOfIntsWritable, IntWritable, ArrayListOfIntsWritable>{
-    private static final IntWritable IMAGE_REGION = new IntWritable();
-    //private static final PairOfInts NOTE_VELOCITY = new PairOfInts();
-    private static final ArrayListOfIntsWritable NOTE_INFO = new ArrayListOfIntsWritable();
-
+  private static class PixelToToneMapper extends Mapper<IntWritable, ArrayListOfIntsWritable, PairOfInts, PairOfInts>{
+    //private static final IntWritable IMAGE_REGION = new IntWritable();
+    private static final PairOfInts REGION_IMAGENO = new PairOfInts();
+    private static final PairOfInts NOTE_VELOCITY = new PairOfInts();
 
 
     public void map(IntWritable key, ArrayListOfIntsWritable pixels, Context context)
@@ -67,20 +68,24 @@ public class Image2MusicMR extends Configured implements Tool {
         pixel = pixels.get(i);
         midiNote = Color2Music.convert(new Color(pixel));
 
-        IMAGE_REGION.set(regionCounter);
-        //NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
-        NOTE_INFO.add(key.get());
-        NOTE_INFO.add(midiNote.getTone());
-        NOTE_INFO.add(midiNote.getVelocity());
+        //IMAGE_REGION.set(regionCounter);
+        REGION_IMAGENO.set(regionCounter, key.get());
+        NOTE_VELOCITY.set(midiNote.getTone(), midiNote.getVelocity());
         
-        //context.write(IMAGE_REGION, NOTE_VELOCITY);
-        context.write(IMAGE_REGION, NOTE_INFO);
+        context.write(REGION_IMAGENO, NOTE_VELOCITY);
 
         regionCounter++;        
       }
 
     }
 
+  }
+  
+  protected static class PixelToToneParitioner extends Partitioner<PairOfInts, PairOfInts> {
+    @Override
+    public int getPartition(PairOfInts key, PairOfInts value, int numReduceTasks) {
+      return (key.getLeftElement() & Integer.MAX_VALUE) % numReduceTasks;
+    }
   }
 
 
@@ -186,8 +191,8 @@ public class Image2MusicMR extends Configured implements Tool {
     job.setInputFormatClass(SequenceFileInputFormat.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-    job.setMapOutputKeyClass(IntWritable.class);
-    job.setMapOutputValueClass(ArrayListOfIntsWritable.class);
+    job.setMapOutputKeyClass(PairOfInts.class);
+    job.setMapOutputValueClass(PairOfInts.class);
 
     // TODO : Not sure about the output class of this job.
     job.setOutputKeyClass(IntWritable.class);
@@ -195,6 +200,7 @@ public class Image2MusicMR extends Configured implements Tool {
 
     job.setMapperClass(PixelToToneMapper.class);
     job.setReducerClass(PixelToToneReducer.class);
+    job.setPartitionerClass(PixelToToneParitioner.class);
 
     // Delete the output directory if it exists already.
     FileSystem.get(conf).delete(new Path(outputPath), true);
