@@ -2,7 +2,7 @@ require 'rmagick'
 
 class ThumbMaker
 
-	def self.convert_thumbs(dir_path)
+	def self.convert_thumbs(dir_path, size)
 		if(Dir.exists? "#{dir_path}/source")
 		# Make directory name string for thumbs
 		thumb_directory = "#{dir_path}/thumbs"
@@ -12,7 +12,7 @@ class ThumbMaker
 
 		puts "Making thumbnail for..."
 		Dir.glob("#{dir_path}/source/*.jpg") do |fname|
-						
+
 			source_filename = fname.split("/").last
 			thumb_fname = "thumb-#{source_filename}"
 			thumb_dest = thumb_directory + "/#{thumb_fname}"
@@ -22,7 +22,7 @@ class ThumbMaker
 
 			# This is the magic
 			img = Magick::Image.read(fname)[0]
-			thumb = img.thumbnail(3,3)
+			thumb = img.thumbnail(size, size)
 			thumb.write(thumb_dest)
 		end
 
@@ -38,5 +38,5 @@ end
 if __FILE__ == $0
 
 	dir_path = ARGV.shift
-	ThumbMaker.convert_thumbs(dir_path)
+	ThumbMaker.convert_thumbs(dir_path, 3)
 end

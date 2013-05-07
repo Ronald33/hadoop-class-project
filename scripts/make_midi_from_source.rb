@@ -35,6 +35,10 @@ opt_parser = OptionParser.new do |opt|
     opts[:n] = n
   end
 
+  opt.on("-t","--thumb-size THUMB_SIZE", Numeric, "Side length of thumbnail") do |t|
+    opts[:t] = t
+  end
+
 
   # Probably don't need this
   # opt.on("-o","--output-directory OUTPATH", "Directory to put output") do |o|
@@ -72,6 +76,7 @@ end
 base_path       = opts[:i]
 min_note_length = opts[:n]
 st_out = ""
+thumb_size = opts[:t]
 # source_path   = base_path + "/source"
 # thumbs_path   = base_path + "/thumbs"
 # sequence_path = base_path + "/sequence"
@@ -83,7 +88,7 @@ classpath = ".:build:lib/*"
 
 puts "\nConverting source to encodings..."
 
-ThumbMaker.convert_thumbs(base_path)
+ThumbMaker.convert_thumbs(base_path, thumb_size)
 
 # Convert source images to encodings
 
@@ -105,16 +110,16 @@ ThumbMaker.convert_thumbs(base_path)
 
 puts "\nWriting encodings to SequenceFile..."
 
-
-
 # 'ant compile' has to have run before this
 if opts[:c]
 	puts "Running 'ant'"
 	st_out = `ant`
+	puts st_out
 end
 
-st_out = `java -classpath #{classpath} phase2.WriteImagesToSequenceFile -base #{base_path}`
+st_out = `java -classpath #{classpath} phase2.WriteImagesToSequenceFile -base #{base_path} -thumb_size #{thumb_size}`
 
+puts st_out
 # Write encodings to SequenceFile
 	# input_path = opts[:i] + "-thumbs"
 	# output_path = opts[:i] + "-sequence"
@@ -127,6 +132,7 @@ puts "\nStarting MapReduce job..."
 
 # 'ant' default targer has to have run before this
 st_out = `etc/hadoop-local.sh phase2.Image2MusicMR -base #{base_path}`
+puts st_out
 
 # Run MapReduce job
 
@@ -139,6 +145,7 @@ st_out = `etc/hadoop-local.sh phase2.Image2MusicMR -base #{base_path}`
 puts "\nWriting Music SequenceFile to MIDI..."
 
 st_out = 	`java -classpath #{classpath} phase2.ReadMusicNotesFromSequenceFile -base #{base_path} -note_length #{min_note_length}`
+puts st_out
 # Read SequenceFile output of MR job and produce midi files
 
 	# input_path = opts[:i] + "-music"

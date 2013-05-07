@@ -27,6 +27,7 @@ import edu.umd.cloud9.io.array.ArrayListOfIntsWritable;
 public class WriteImagesToSequenceFile {
 
   private static final String BASE_PATH = "base";
+  private static final String THUMB_SIZE = "thumb_size";
 
   private WriteImagesToSequenceFile() {}
 
@@ -43,6 +44,9 @@ public class WriteImagesToSequenceFile {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("base").create(BASE_PATH));
+    
+    options.addOption(OptionBuilder.withArgName("path").hasArg()
+        .withDescription("thumb_size").create(THUMB_SIZE));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -54,7 +58,7 @@ public class WriteImagesToSequenceFile {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(BASE_PATH)) {
+    if (!cmdline.hasOption(BASE_PATH) || !cmdline.hasOption(THUMB_SIZE)) {
       System.out.println("args: " + Arrays.toString(args));
       HelpFormatter formatter = new HelpFormatter();
       formatter.setWidth(120);
@@ -66,6 +70,8 @@ public class WriteImagesToSequenceFile {
     String basePath = cmdline.getOptionValue(BASE_PATH);
     String inputPath = basePath + "/thumbs";
     String outputPath = basePath + "/sequence";
+    
+    int thumb_size = Integer.parseInt(cmdline.getOptionValue(THUMB_SIZE));
         
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
@@ -94,9 +100,9 @@ public class WriteImagesToSequenceFile {
 
 
         // Get the RBG integer for each pixel in 3X3
-        for(int j = 0; j < 3; j++) {
-          for(int i = 0; i < 3; i++) {
-            //System.out.println("Reading pixel: i = " + i + ", j = " + j);
+        for(int j = 0; j < thumb_size; j++) {
+          for(int i = 0; i < thumb_size; i++) {
+            System.out.println("Reading pixel: i = " + i + ", j = " + j);
             pixelData.add(img.getRGB(i,j));
           }
         }
