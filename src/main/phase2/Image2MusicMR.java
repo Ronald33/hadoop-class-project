@@ -58,8 +58,6 @@ public class Image2MusicMR extends Configured implements Tool {
       int regionCounter = 1;
       MidiNote midiNote = null;
 
-      System.out.println("Starting loop over ObjectInputStream...");
-      
       for(int i = 0; i < pixels.size(); i++){
 //        LOG.info("Region counter #: " + regionCounter);
         if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
