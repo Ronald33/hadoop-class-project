@@ -14,8 +14,7 @@ all: $(TARGET)
 
 paper.pdf: $(DVI)
 	clear
-	echo Running $(PDFTEX)
-	$(PDFTEX) $(PDFTEXOPTIONS) $(basename $(DVI));\
+	pdflatex paper.tex
 
 clean: 
 	$(RM) $(TARGET)  $(DVI) $(BIBFILE) *.aux *.log *blg *~ semantic.cache $(basename $(TARGET)).out 

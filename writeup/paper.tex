@@ -3,7 +3,6 @@
 %% Custom TeX
 
 \usepackage{listings}
-\usepackage{xcolor}
 \usepackage{xspace}
 \usepackage{graphicx}
 \usepackage{caption}
@@ -12,6 +11,16 @@
 \usepackage{amssymb}
 \usepackage{url}
 \usepackage[splitrule]{footmisc}
+
+\usepackage[dvipsnames]{xcolor}
+
+\usepackage{listings}
+\lstloadlanguages{Ruby}
+\lstset{
+basicstyle=\ttfamily\color{black},
+commentstyle = \ttfamily\color{red},
+keywordstyle=\ttfamily\color{blue},
+stringstyle=\color{orange}}
 
 %% for comments
 \newcommand{\comment}[3][\color{red}]{{#1{[{#2}: {#3}]}}}
@@ -31,10 +40,10 @@
 
 %%\numberofauthors{3}
 \author{
-\IEEEauthorblockN{Christopher Imbriano, Amanda Strickler, Kristopher Micinski
+\IEEEauthorblockN{Christopher Imbriano, Amanda Strickler, Kristopher Micinski}
 \IEEEauthorblockA{Computer Science Department, University of Maryland,
-  College Park, MD 20742, USA\\
-  \{micinski, pdphelp, jfoster\}@cs.umd.edu}
+  College Park, MD 20742, USA
+}
 }
 
 \maketitle
@@ -46,13 +55,25 @@
 \label{sec:introduction}
 
 The big data revolution has revolutionized the way we think about,
-design, and implement algorithms at scale.  
+design, and implement algorithms at scale.  As such, problems from all
+different areas of computer science have been lifted into the
+MapReduce framework.  By contrast, MapReduce has been used relatively
+less to explore art or creative tasks.  Our project looks to answer:
+what kinds of art can we create harnessing large amounts of data at
+scale?
 
 We present a system to synthesize music using large amounts of data.
 The input is a large corpus of images, which is subsequently processed
-by our system, and the result is a musical score.
+by our system, and the result is a musical score.  We then mix and
+listen to the music.
 
-We study the music we 
+\paragraph{Motivation} 
+
+We are currently unaware of any projects using MapReduce to create art
+or any other representation of digital media.  Because of this, we
+anticipate that there might be problems in handling media (buffering,
+representing, etc..).  We anticipate that exploring this area might
+open up potential applications.
 
 \section{Overview}
 \label{sec:overview}
@@ -68,14 +89,19 @@ larger range of primitives with which to construct music, but does not
 enjoy the simplicity that MIDI provides.
 
 Our system is modeled as a function from ordered sets of images to a
-MIDI file.  In our view, a MIDI file consists of note, duration pairs.
+MIDI file.  In our view, a MIDI file consists of note and duration
+pairs.  Taken together, these constitute a score by chaining together
+multiple pairs over the course of time:
 
+\[
+MIDI : (Note,Duration)^{\ast}
+\]
 
 %% \[
 %%     f : image^{\ast} \to (
 %% \]
 
-\paragraph{The HSB format}
+\paragraph{The HSV format}
 
 To convert image data to musical notes, we need to establish a
 bijection between the data in the image and the range of music in the
@@ -84,31 +110,36 @@ HSV values.  In HSV, each color has three components: a hue, a
 saturation, and a value.  These components are visualized (as shown in
 Figure~\ref{fig:hsv}) using a wheel.  The components represent:
 
-\begin{describe}
-\item[Hue] The actual ``color'' that would be described.  At full
+\begin{enumerate}
+\item Hue --- The actual ``color'' that would be described.  At full
   saturation and value, the hue determines the color seen.  This is
   visualized as going around a wheel of colors.
 
-\item[Saturation] The degree to which the color is saturated from
+\item Saturation --- The degree to which the color is saturated from
   white.  Zero saturation is a blank (white) surface, while increasing
   values show more permeance of color.
 
-\item[Value] The amount of light in the color.  Colors with low values
-  are dark, and those with higher values are brighter.  This is
+\item Value --- The amount of light in the color.  Colors with low
+  values are dark, and those with higher values are brighter.  This is
   visualized by going up the cylinder.
-\end{describe}
+\end{enumerate}
 
 \kris{Here I'm going to draw a diagram which shows two points on the
   HSV wheel and a musical clef, illustrating the position.}
 
+In our transformation to music, we map colors in HSV to notes in MIDI.
+To do this, we map colors in RGB to HSV using the \code{\#RGBtoHSV}
+method of the \code{java.awt.Color} class.
+
 \begin{figure}
   \centering
-  \includegraphics{hsv}
+  \includegraphics[width=.4\textwidth]{hsv.png}
   \caption{The HSV color cylinder}
   \label{fig:hsv}
 \end{figure}
 
 \paragraph{Generating music}
+\label{sec:generating}
 
 To generate music, we take each image in our corpus and view it as a
 single step in time.  Musical scores are made by streaming large
@@ -134,21 +165,77 @@ how do we take this to a HSV value?  We solve this problem by taking
 thumbnails of images, essentially doing a projection from $A_{i,j}$
 down to $A_{n^{.5},n^{.5}}$.  This also tacitly stipulates that we
 start out with square images (otherwise we lose some of the image data
-in the projection): we handle this step as a first preprocessing
-phase.
+in the projection): we handle this step as a first preprocessing phase
+where we take images and project them to square images.
+
+In the case of MIDI, notes are pairs of integers in the range
+$[-1,127]$.  The first element of the pair represents the \emph{tone}
+, and the second element of the pair represents the \emph{velocity}
+(how loud the note is):
+
+\[
+    note : tone \times velocity
+\]
+
+where a velocity of $-1$ represents the lack of any tone, and $127$
+represents the loudest possible tone.  Colors start at $C_0$ and move
+up over ten octaves.
+
+\paragraph{Conversion to colors}
 
 \section{Implementation}
 
-\begin{figure}
+\begin{figure*}
   \centering
+  \includegraphics[width=.85\textwidth]{pipeline.png}
   \caption{High level view of the pipeline used for the project}
   \label{fig:project-pipeline}
+\end{figure*}
+
+Our implementation consists of scripts to transform the input,
+MapReduce phases, and a music mixing tool.  The high level pipeline is
+shown in Figure~\ref{fig:project-pipeline}.
+
+\paragraph{Conversion of images to thumbnails}
+
+Conversion to music happens by doing operations on colors and image
+data.  To do the conversion to tone, velocity pairs, we transform
+colors in the input data, meaning that we have to start with a
+representation of $R$ colors for each image.  To do this
+transformation, we considered using a MapReduce job: mapping over the
+sets of images in our input corpus.  Ultimately we found that
+converting images to thumbnails was better accomplished using scripts:
+which allowed us to do other manipulation as well.  We anticipate that
+if this became a problem we could have moved the image processing code
+to Java and pass in our input corpus to the initial stage of
+MapReduce.  Our current implementation uses the RMagick \cite{rmagick}
+gem, which is a Ruby library interfacing to ImageMagick
+\cite{imagemagick}.  ImageMagick includes facilities for taking images
+to thumbnails.
+
+\begin{figure}
+\begin{lstlisting}[language=Ruby]
+require 'rmagick'
+
+class ThumbMaker
+  # Convert set of images to thumbnails
+  def self.convert_thumbs(dir_path, size)
+      # ... 
+      puts "Making thumbnail for..."
+      Dir.glob("#{path}/*.jpg") do |fname|
+        # ...
+        fname = # ...
+        img = Magick::Image.read(fname)[0]
+        thumb = img.thumbnail(size, size)
+        thumb.write(thumb_dest)
+      end
+    end
+end
+
+\end{lstlisting}
+\caption{Relevant code from the module used for image to thumbnail
+  conversion}
 \end{figure}
-
-Our implementation consists of three MapReduce phases, tied together
-with helper scripts.  The high level pipeline is shown in
-Figure~\ref{fig:project-pipeline}.
-
 
 \paragraph{Conversion to intermediate representation}
 \label{sec:conversion}
@@ -165,8 +252,7 @@ image representation to the sequence file format used in subsequent
 processing.  Although it may appear inefficient to hold an
 uncompressed image in memory, this is actually ideal for Hadoop:
 because computing cycles (incurred through recompressing and sending
-the images) are the cost, compared with network traffic \kris{does
-  this make sense???}.  
+the images) are the cost, compared with network traffic.
 
 The conversion in our prototype uses the java \code{ImageBuffer} class
 to do image input and conversion.  This class holds requires a large
@@ -178,7 +264,14 @@ time (using statics) when mapping over our input corpus.
 
 After taking the image data to an intermediate format, we must map the
 image data to a set of note / region pairs for use in the MIDI.  To do
-this, we do projection 
+this, we do projection
+
+\paragraph{Mixing and producing playable music}
+
+The result of our mapreduce pipeline is a set of MIDI music: one for
+each region in the image set.  To turn these into music that can be
+played, we use mixing software (such as GarageBand) to
+mix the regions into full scores.
 
 \section{Results}
 
@@ -187,9 +280,7 @@ this, we do projection
 To test the system, we use a variety of different sets of images.
 These images were obtained from
 Flickr\footnote{\url{http://www.flickr.com/}}, using a public API and
-a Python script \cite{flickerpy} \kris{Did we actually use this?  Did
-  Amanda write the code?}  
-
+a Python script \cite{flickerpy} to get test data.
 
 \section{Related work}
 
