@@ -15,7 +15,7 @@
 \usepackage[dvipsnames]{xcolor}
 
 \usepackage{listings}
-\lstloadlanguages{Ruby}
+\lstloadlanguages{Ruby,Java}
 \lstset{
 basicstyle=\ttfamily\color{black},
 commentstyle = \ttfamily\color{red},
@@ -67,7 +67,7 @@ The input is a large corpus of images, which is subsequently processed
 by our system, and the result is a musical score.  We then mix and
 listen to the music.
 
-\paragraph{Motivation} 
+\subsection{Motivation} 
 
 We are currently unaware of any projects using MapReduce to create art
 or any other representation of digital media.  Because of this, we
@@ -101,7 +101,7 @@ MIDI : (Note,Duration)^{\ast}
 %%     f : image^{\ast} \to (
 %% \]
 
-\paragraph{The HSV format}
+\subsection{The HSV format}
 
 To convert image data to musical notes, we need to establish a
 bijection between the data in the image and the range of music in the
@@ -138,7 +138,7 @@ method of the \code{java.awt.Color} class.
   \label{fig:hsv}
 \end{figure}
 
-\paragraph{Generating music}
+\subsection{Generating music}
 \label{sec:generating}
 
 To generate music, we take each image in our corpus and view it as a
@@ -181,7 +181,26 @@ where a velocity of $-1$ represents the lack of any tone, and $127$
 represents the loudest possible tone.  Colors start at $C_0$ and move
 up over ten octaves.
 
-\paragraph{Conversion to colors}
+We represent each region of the image by a representative color, which
+is obtained (as noted previously) using thumbnailing.
+
+\begin{figure}
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.4\linewidth]{image1}
+  \caption{A subfigure}
+  \label{fig:sub1}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.4\linewidth]{image1}
+  \caption{A subfigure}
+  \label{fig:sub2}
+\end{subfigure}
+\caption{A figure with two subfigures}
+\label{fig:test}
+\end{figure}
 
 \section{Implementation}
 
@@ -260,18 +279,99 @@ amount of memory to represent image objects, however this is fine
 because we hold only a small number of images in memory at any one
 time (using statics) when mapping over our input corpus.
 
+Our implementation for this conversion happens in the
+\code{WriteImagesToSequenceFile} class.  They key novelty in this
+class is the conversion of image data to a \code{SequenceFile} based
+representation.  A \code{SequenceFile} works well for our application
+because we need to stream potentially large amounts of image data (raw
+bytes).  This is fundamentally no different than creating a custom
+Writable instance to serialize to a \code{SequenceFile} at a later
+point, but given the simplicity of our representation we say no need
+to do this.
+
+\begin{figure}
+\begin{lstlisting}[language=Java]
+public class WriteImagesToSequenceFile {
+  BufferedImage img = null;
+  SequenceFile.Writer writer = null;
+  FileSystem fs = FileSystem.get(conf);
+
+  FileStatus[] fss = 
+    fs.globStatus(new Path(inputPath 
+      + "/*.jpg"));
+
+  writer = SequenceFile.createWriter(fs, 
+    conf, outPath, IntWritable.class,
+    ArrayListOfIntsWritable.class);
+  int counter = 0;
+  for (FileStatus status : fss) {
+    IntWritable image_counter = 
+      new IntWritable();
+    ArrayListOfIntsWritable 
+      pixelData = 
+        new ArrayListOfIntsWritable();
+
+    img = ImageIO.read(
+      new File(status.getPath()
+               .toString().substring(5)));
+
+    // Get the RBG integer for each pixel 
+    // in 3X3
+    for(int j = 0; j < thumbs; j++) {
+      for(int i = 0; i< thumbs; i++) {
+        pixelData.add(img.getRGB(i,j));
+      }
+    }
+    
+    // Write to the sequence file
+    image_counter.set(counter);
+    writer.append(image_counter, pixelData);
+    counter += 1;
+  } 
+}
+\end{lstlisting}
+\caption{Snippet of code from \code{WriteToSequenceFile} showing
+  format used in sequence files throughout the MapReduce jobs.}
+\end{figure}
+
 \paragraph{Translating to note, region pairs}
 
 After taking the image data to an intermediate format, we must map the
 image data to a set of note / region pairs for use in the MIDI.  To do
-this, we do projection
+this, we map a conversion function across each of the different
+portions of each image.  The conversion happens by mapping over our
+set of images in the \code{Image2MusicMR} class.  The output of the
+image to music conversion is $n$ sets of note lists (where notes are
+expressed as pairs).  
 
-\paragraph{Mixing and producing playable music}
+The strategy used in the conversion is to map over each pixel in an
+image, apply the conversion function, and emit it to a reducer to
+collate together.  After mapping over each pixel, we need to end up
+with a stream of images for each region: a naive implementation simply
+maps each pixel in our input corpus to these tone, velocity pairs:
+
+\[
+  map : id \times (r,g,b) \to region \times (tone \times velocity)
+\]
+
+However, when we actually mix the music, we need each of the streams
+to be in an ordered format.  Because the default sorting order does
+not take this into account, the music ends up jumbled (each of the
+regions is permuted with respect to input ID in an arbitrary way).  To
+fix this, we perform secondary sorting on the input ID:
+
+\[
+  map : id \times (r,g,b) \to (id \times region) \times (tone \times velocity)
+\]
+
+
+
+\subsection{Mixing and producing playable music}
 
 The result of our mapreduce pipeline is a set of MIDI music: one for
 each region in the image set.  To turn these into music that can be
-played, we use mixing software (such as GarageBand) to
-mix the regions into full scores.
+played, we use mixing software (such as GarageBand) to mix the regions
+into full scores.
 
 \section{Results}
 
