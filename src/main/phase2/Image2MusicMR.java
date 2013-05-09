@@ -63,7 +63,7 @@ public class Image2MusicMR extends Configured implements Tool {
         if(regionCounter > 9) LOG.info("ERROR: Region Counter > 9:" + regionCounter);
 
         pixel = pixels.get(i);
-        midiNote = Color2Music.convert(new Color(pixel));
+        midiNote = Color2Music.convert(pixel);
 
         //IMAGE_REGION.set(regionCounter);
         REGION_IMAGENO.set(regionCounter, key.get());

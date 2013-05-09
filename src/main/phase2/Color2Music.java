@@ -35,13 +35,44 @@ public class Color2Music {
   public static final int[] regionToMidiNote = {C, G, D, A, E, B, 
     F_SHARP, C_SHARP, G_SHARP, D_SHARP, A_SHARP, F};
 
-  public static MidiNote convert(Color c){
+  private static float[] hsvConversionArray = new float[3];
+  
+  /**
+   * Convert an RGB pixel to an HSV int array
+   * @param pixel
+   */
+  private static void RGBtoHSV(int pixel) {
+    float r = (pixel & 0xFF)/255.0F;
+    float g = (pixel >> 8)/255.0F;
+    float b = ((pixel >> 16) & 0xFF)/255.0F;
     
-    float[] hsvals = Color.RGBtoHSB(c.getRed(), c.getGreen(), c.getBlue(), null);
+    float min = Math.min(r,Math.min(g,b));
+    float max = Math.max(r,Math.max(g,b));
     
-    float hue = hsvals[0];
-    float saturation = hsvals[1];
-    float brightness = hsvals[2];
+    if (Math.min(r,Math.min(g,b))==Math.max(r,Math.max(g,b))) {
+     hsvConversionArray[0] = 0;
+     hsvConversionArray[1] = 0;
+     hsvConversionArray[2] = Math.min(r,Math.min(g,b));
+     return;
+    }
+
+    // Colors other than black-gray-white:
+    float d = (r==min) ? g-b : ((b==min) ? r-g : b-r);
+    float h = (r==min) ? 3 : ((b==min) ? 1 : 5);
+    hsvConversionArray[0] = 60*(h - d/(max - min));
+    hsvConversionArray[1] = (max - min)/max;
+    hsvConversionArray[2] = max;
+    return;
+  }
+  
+  public static MidiNote convert(int pixel){
+
+    
+    RGBtoHSV(pixel);
+    
+    float hue = hsvConversionArray[0];
+    float saturation = hsvConversionArray[1];
+    float brightness = hsvConversionArray[2];
     
     int tone = getMidiToneFromHSValues(hue, saturation, brightness);
     
