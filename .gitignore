@@ -5,3 +5,9 @@
 *.war
 *.ear
 *.out
+
+LaTeX
+*.aux
+*.log
+*.pdf
+*.synctex.gz
