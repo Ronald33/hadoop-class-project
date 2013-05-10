@@ -161,9 +161,10 @@ Figure~\ref{fig:images-to-music}.
 
 To convert image data to musical notes, we need to establish a
 bijection between the data in the image and the range of music in the
-song.  The way we do this is inspired by viewing colors in images as
-HSV values.  In HSV, each color has three components: a hue, a
-saturation, and a value.  These components are visualized (as shown in
+song.  The way we do this is inspired by viewing colors in images
+using a slightly unconventional color representation system: HSV.  In
+HSV, each color has three components: a hue, a saturation, and a
+value.  These components are visualized (as shown in
 Figure~\ref{fig:hsv}) as a cylinder (as opposed to RGB, which views
 the color space as a cube).  Each component represents:
 
@@ -181,12 +182,12 @@ the color space as a cube).  Each component represents:
   visualized by going up the cylinder.
 \end{enumerate}
 
-In our transformation to music, we map colors in HSV to notes in MIDI.
-We do this by overlaying the circle of fifths (a circle representing
-pleasing intervals called fifths in music theory) onto the circle
-representing hue in HSV.  We establish the octave of the produced note
-using the value of the color in HSV, and the volume of the note using
-the saturation.
+In our transformation to music, we map colors (natively in RGB) to HSV
+and then to notes in MIDI.  We do this by overlaying the circle of
+fifths (a circle representing pleasing intervals called fifths in
+music theory) onto the circle representing hue in HSV.  We establish
+the octave of the produced note using the value of the color in HSV,
+and the volume of the note using the saturation.
 
 \subsection{Generating music}
 \label{sec:generating}
