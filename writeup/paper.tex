@@ -300,10 +300,10 @@ to do this.
 
 \begin{figure}
 \begin{lstlisting}[language=Java]
-public class WriteImagesToSequenceFile
+public class WriteImgsToSequence
 {
   BufferedImage img = null;
-  SequenceFile.Writer writer = null;
+  SequenceFile.Writer writer=null;
   FileSystem fs = 
       FileSystem.get(conf);
   FileStatus[] fss = 
@@ -318,14 +318,14 @@ public class WriteImagesToSequenceFile
     IntWritable image_counter = 
       new IntWritable();
     ArrayListOfIntsWritable 
-      pixelData = 
-        new ArrayListOfIntsWritable();
+     pixelData = 
+      new ArrayListOfIntsWritable();
     img = ImageIO.read(
       new File(status.getPath()
-           .toString().substring(5)));
-    // Get RBG integer for each pixel 
-    for(int j = 0; j < thumbs; j++) {
-      for(int i = 0; i< thumbs; i++) {
+         .toString().substring(5)));
+    // Get RBG for each pixel 
+    for(int j = 0; j<thumbs; j++) {
+     for(int i = 0; i<thumbs; i++) {
         pixelData
           .add(img.getRGB(i,j));
       }
@@ -381,10 +381,10 @@ Figure~\ref{figure:colortomusic-mapper}.
 public void map(IntWritable key, 
     ArrayListOfIntsWritable pixels,
     Context context)
-  throws IOException, InterruptedException {
+{
   int regionCounter = 1;
   MidiNote midiNote = null;
-  for(int i = 0; i < pixels.size(); i++){
+  for(int i=0; i<pixels.size();i++){
     pixel = pixels.get(i);
     // Conversion from color to note
     midiNote = Color2Music
@@ -393,7 +393,8 @@ public void map(IntWritable key,
       key.get());
     NOTE_VELOCITY.set(midiNote.getTone(),
       midiNote.getVelocity());
-    context.write(REGION_IMAGENO, NOTE_VELOCITY);
+    context.write(REGION_IMAGENO,
+       NOTE_VELOCITY);
     regionCounter++;
   }
 }
@@ -408,19 +409,63 @@ public void map(IntWritable key,
 
 \subsection{Mixing and producing playable music}
 
-The result of our mapreduce pipeline is a set of MIDI music: one for
-each region in the image set.  To turn these into music that can be
-played, we use mixing software (such as GarageBand) to mix the regions
-into full scores.
+The result of our mapreduce pipeline is a set of notes in MIDI: one
+for each region in the image set.  We postprocess the MapReduce output
+by taking it off HDFS using a script and converting to the MIDI format
+(adding on a header about the number of parts and other small details
+to be a valid MIDI file). To turn these into music that can be played,
+we use mixing software (such as GarageBand) to mix the regions into
+full scores and generate MP3 files.
+
+To visualize music and colors, we take the resulting music and mix it
+with a video generated from the thumbnailed images in our input
+dataset.  We do this using a process similar to preprocessing: we
+simply blow up the thumbnailed images to a larger size, concatenate
+them together into subsequent frames of a video, and mix the video
+with the music generated from our MapReduce phases.
 
 \section{Results}
 
-\subsection{Sample datasets}
-
 To test the system, we use a variety of different sets of images.
 These images were obtained from
-Flickr\footnote{\url{http://www.flickr.com/}}, using a public API and
-a Python script \cite{flickerpy} to get test data.
+Flickr\footnote{\url{http://www.flickr.com/}} and \code{memebase.com},
+using a public API and a Python script \cite{flickerpy} to get test
+data.  We converted animated GIFs into individual frames again using a
+preprocessing phase.  Our MapReduce code takes as input simply a
+\code{SequenceFile} (as discussed in Section~\ref{sec:conversion}), so
+we simply feed in a folder of JPG images to our preprocessing phase.
+
+As a result, we produced various pieces of music.  Our longest piece
+(named \code{Digital Nightmare}) was over six minutes long and
+composed of over 3000 images.  We also produced shorter (self
+contained) pieces from various related images: such as GIFs of cat
+jumping animations.  All of these pieces are made available in our
+repository.
+
+Our MapReduce phases ran very quickly (on the order of minutes, mostly
+startup time).  We believe that the reason for this is that by the
+time preprocessing was completed we ended up with a relatively small
+amount of data to be fed into MapReduce.  Were we to do the project
+over again we would have fed in much more data to the MapReduce jobs
+and optimized the selection of regions (from each image) to be the
+``best sounding'' piece of music that could be produced.  We thought
+about how to devise a measure of ``realistic'' music, but could not
+easily see one.  One potential next application would be to use Hadoop
+to mine this correlation.  The idea is that realistic music generally
+has some recurring nature (backbeat, for example) even if very
+complex.  Therefore, we would want to apply a penalty term to our
+measure whenever we generated music that had too complex a principal
+structure (this would avoid creating chaotic sounding music).  We did
+some initial work on this (writing down some equations, studying how
+to analyze MIDI for it's beat) but didn't have anything concrete by
+the time we needed to do implementation.
+
+We also noticed that there might be some interesting problems in
+taking a song and a set of videos and finding out which best matched
+each other.  (In essence, this would let you search for image based on
+video.)  We started to write an inverse transformation within
+MapReduce\footnote{src/main/phase2/Color2Music} to explore this idea,
+but haven't finished doing the work yet.
 
 \section{Related work}
 
@@ -430,6 +475,8 @@ music in the small ().  By contrast, our approach focuses on using
 large amounts of data to create music...
 
 \section{Conclusion}
+
+
 
 \bibliographystyle{IEEEtran}
 \bibliography{paper}
