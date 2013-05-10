@@ -418,6 +418,18 @@ video.)  We started to write an inverse transformation within
 MapReduce\footnote{src/main/phase2/Color2Music} to explore this idea,
 but haven't finished doing the work yet.
 
+\subsection{Reflection on Results}
+
+One might describe our final piece, \emph{Digital Nightmare}, as an unrelenting flood of almost patternless musical information.
+This characteristic emerges from some simplifications in design choices that a later vernon of our process would look to address.
+Here we present a list of such areas and possible solutions.
+\begin{itemized}
+\item Each instrument plays a note during every musical time unit (beat). This results in constant note information without any space for the listener to "catch up".  Darker colors below some threshold of brightness could all be translated into musical rests.
+\item Each note played last only one beat, i.e quarter notes are the only length note used.  Consecutive image regions with similar colors could be "strung together" cause some instruments to play longer notes.
+\item Late on in the process, we moved from saturation mapping to velocity to choosing a fixed velocity of 127.  We found that velocity dynamics were not so perceptible with the degree of musical production we were willing to invest.  Spending more time in the post-processing phase and focusing on musical dynamics such as volume, panning, etc could improve the contribution of velocity to a musical piece.
+\item In out final piece, saturation did not contribute to velocity, but instead was a component of the octave calculation. This choice was made after observing some short musical pieces and feeling that the color to sound mapping was not as intuitive as we had expected.  This change helped somewhat, but we feel the issue was related to a number of factors including the limitations of the HSB color model to represent the human visual model, the discretization of a continuous range (color is continuous whereas music notes are discrete), and using a constant scale rather than a logarithmic scale to represent musical frequencies (which are inherently logarithmic, each an octave higher is twice the lower octave's frequency).
+\end{itemized}
+
 \section{Related work}
 
 Our work is inspired by the music visualization effects included in
