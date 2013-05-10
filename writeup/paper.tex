@@ -104,9 +104,17 @@ mixed by many synthesizers to produce music using a variety of
 instruments.
 
 Our system takes in ordered sets of images and produces a MIDI file.
-In our view, a MIDI file consists of note and duration pairs.  Taken
-together, these constitute a score by chaining together multiple pairs
-over the course of time:
+The input format is JPEG images: this is a very commonly used lossy
+compression format.  Since we used input corpuses from the internet,
+using JPEG worked for the variety of input formats.  Using JPEG as the
+input format is also attractive because it can be easily unpacked by
+the Java \code{ImageBuffer} class.  
+
+The output of our MapReduce phases is MIDI music.  MIDI is a simple
+format for writing music which can be mixed ans synthesized using
+software.  At an abstract level, a MIDI file consists of note and
+duration pairs.  Taken together, these constitute a score by chaining
+together multiple pairs over the course of time:
 
 \[
 MIDI : (Note,Duration)^{\ast}
@@ -279,7 +287,6 @@ end
 
 \subsection{Conversion to intermediate representation}
 \label{sec:conversion}
-
 Image data comes in a variety of different formats: JPEG, GIF, PNG,
 etc..  Dealing with the plethora of formats presents a problem for our
 translation because there are many artifacts of the formats
@@ -287,18 +294,19 @@ translation because there are many artifacts of the formats
 for our implementation.  To keep the core abstraction of images as
 arrays of bytes (the abstraction described in
 Section~\ref{sec:overview}) the first stage of our Hadoop
-implementation\footnote{\code{src/main/phase1}} converts the surface
-image representation to the sequence file format used in subsequent
-processing.  Although it may appear inefficient to hold an
-uncompressed image in memory, this is actually ideal for Hadoop:
-because computing cycles (incurred through recompressing and sending
-the images) are the cost, compared with network traffic.
+implementation converts the surface image representation to the
+sequence file format used in subsequent processing.  Although it may
+appear inefficient to hold an uncompressed image in memory, this is
+actually ideal for Hadoop: because computing cycles (incurred through
+recompressing and sending the images) are the cost, compared with
+network traffic.
 
-The conversion in our prototype uses the java \code{ImageBuffer} class
-to do image input and conversion.  This class holds requires a large
-amount of memory to represent image objects, however this is fine
-because we hold only a small number of images in memory at any one
-time (using statics) when mapping over our input corpus.
+The conversion in our prototype uses the java \code{ImageBuffer}
+class to do image input and conversion.  This class holds requires a
+large amount of memory to represent image objects, however this is
+fine because we hold only a small number of images in memory at any
+one time (using statics) when mapping over our input corpus.
+
 
 Our implementation for this conversion happens in the
 \code{WriteImagesToSequenceFile} class.  They key novelty in this
@@ -310,59 +318,20 @@ Writable instance to serialize to a \code{SequenceFile} at a later
 point, but given the simplicity of our representation we say no need
 to do this.
 
-\begin{figure}
-\begin{lstlisting}[language=Java]
-public class WriteImgsToSequence
-{
-  BufferedImage img = null;
-  SequenceFile.Writer writer=null;
-  FileSystem fs = 
-      FileSystem.get(conf);
-  FileStatus[] fss = 
-    fs.globStatus(new Path(input 
-      + "/*.jpg"));
-  writer = SequenceFile
-      .createWriter(fs, 
-    conf,outPath,IntWritable.class,
-    ArrayListOfIntsWritable.class);
-  int counter = 0;
-  for (FileStatus status : fss) {
-    IntWritable image_counter = 
-      new IntWritable();
-    ArrayListOfIntsWritable 
-     pixelData = 
-      new ArrayListOfIntsWritable();
-    img = ImageIO.read(
-      new File(status.getPath()
-         .toString().substring(5)));
-    // Get RBG for each pixel 
-    for(int j = 0; j<thumbs; j++) {
-     for(int i = 0; i<thumbs; i++) {
-        pixelData
-          .add(img.getRGB(i,j));
-      }
-    }
-    // Write to the sequence file
-    image_counter.set(counter);
-    writer.append(image_counter,
-      pixelData);
-    counter += 1;
-  } 
-}
-\end{lstlisting}
-\caption{Snippet of code from \code{WriteToSequenceFile} showing
-  format used in sequence files throughout the MapReduce jobs.}
-\end{figure}
-
 \subsection{Translating to note, region pairs}
 
 After taking the image data to an intermediate format, we must map the
 image data to a set of note / region pairs for use in the MIDI.  To do
 this, we map a conversion function across each of the different
 portions of each image.  The conversion happens by mapping over our
-set of images in the \code{Image2MusicMR} class.  The output of the
-image to music conversion is $n$ sets of note lists (where notes are
-expressed as pairs).  
+set of images in the \code{Image2MusicMR} class.  The input of this
+reducer is a set of key/value pairs which constitute the image number
+and image data (a set of integers representing each pixel in the
+image).  The output of the image to music conversion is $n$ sets of
+note lists (where notes are expressed as pairs).  This is stored as a
+set of key/value pairs where the key is the region number and image
+number pair (subsequently discussed, but used for secondary sorting)
+and the part number and MIDI note.
 
 The strategy used in the conversion is to map over each pixel in an
 image, apply the conversion function, and emit it to a reducer to
@@ -383,41 +352,6 @@ fix this, we perform secondary sorting on the input ID:
 \[
   map : id \times (r,g,b) \to (id \times region) \times (tone \times velocity)
 \]
-
-A snippet of our mapper is shown in
-Figure~\ref{figure:colortomusic-mapper}.  
-
-\begin{figure}
-\label{figure:colortomusic-mapper}
-\begin{lstlisting}[language=Java]
-public void map(IntWritable key, 
-    ArrayListOfIntsWritable pixels,
-    Context context)
-{
-  int regionCounter = 1;
-  MidiNote midiNote = null;
-  for(int i=0; i<pixels.size();i++){
-    pixel = pixels.get(i);
-    // Conversion from color to note
-    midiNote = Color2Music
-      .convert(new Color(pixel));
-    REGION_IMAGENO.set(regionCounter,
-      key.get());
-    NOTE_VELOCITY.set(midiNote.getTone(),
-      midiNote.getVelocity());
-    context.write(REGION_IMAGENO,
-       NOTE_VELOCITY);
-    regionCounter++;
-  }
-}
-\end{lstlisting}
-\caption{A portion of our mapper that takes color data to MIDI notes.
-  For each pixel in the original image, the conversion in
-  \code{Color2Music} is applied before setting the output key (as a
-  region, number pair).}
-\end{figure}
-
-
 
 \subsection{Mixing and producing playable music}
 
