@@ -254,8 +254,8 @@ of MapReduce jobs, along with sets of helper scripts
 
 Conversion to music happens by doing operations on colors and image
 data.  To do the conversion to tone, velocity pairs, we transform
-colors in the input data, meaning that we have to start with a
-representation of $R$ colors for each image.  To do this
+regions in the input data, meaning that we have to start with a
+representation of $n$ regions for each image.  To do this
 transformation, we considered using a MapReduce job: mapping over the
 sets of images in our input corpus.  Ultimately we found that
 converting images to thumbnails was better accomplished using scripts:
