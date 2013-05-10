@@ -52,6 +52,7 @@ stringstyle=\color{orange}}
 \maketitle
 
 \begin{abstract}
+
 \end{abstract}
 
 \section{Introduction}
@@ -60,10 +61,10 @@ stringstyle=\color{orange}}
 The big data revolution has revolutionized the way we think about,
 design, and implement algorithms at scale.  As such, problems from all
 different areas of computer science have been lifted into the
-MapReduce framework.  By contrast, MapReduce has been used relatively
-less to explore art or creative tasks.  Our project looks to answer:
-what kinds of art can we create harnessing large amounts of data at
-scale?
+MapReduce framework.  While MapReduce has been applied to many
+large-scale data processing domains, it has been used relatively less
+to explore art or creative tasks.  Our project looks to answer: what
+kinds of art can we create harnessing large amounts of data at scale?
 
 We present a system to synthesize music using large amounts of data.
 The input is a large corpus of images, which is subsequently processed
@@ -85,11 +86,11 @@ The core idea in converting image data to music is to view the
 information in an image (color, size, opacity, etc..) as a mapping to
 notes and durations with which those notes are sustained.  In our
 system we chose MIDI as the output format.  Our system can then be
-modeled as a function from image data to MIDI output.  Note that the
-choice of MIDI limits the expressivity of our music.  Going to other
-formats (such as MP3 or OOG) could provide a larger range of
-primitives with which to construct music, but does not enjoy the
-simplicity that MIDI provides.
+modeled as a function from image data to MIDI output.  Using MIDI as a
+format works well because it is easy to work with (we can model music
+as MIDI events, which are simply streams of musical data) and can be
+mixed by many synthesizers to produce music using a variety of
+instruments.
 
 Our system takes in ordered sets of images and produces a MIDI file.
 In our view, a MIDI file consists of note and duration pairs.  Taken
@@ -437,10 +438,11 @@ we simply feed in a folder of JPG images to our preprocessing phase.
 
 As a result, we produced various pieces of music.  Our longest piece
 (named \code{Digital Nightmare}) was over six minutes long and
-composed of over 3000 images.  We also produced shorter (self
+composed of over 3500 images.  We also produced shorter (self
 contained) pieces from various related images: such as GIFs of cat
 jumping animations.  All of these pieces are made available in our
-repository.
+repository.  We ran the entire MapReduce job on the Hoth cluster to
+produce our longest piece.
 
 Our MapReduce phases ran very quickly (on the order of minutes, mostly
 startup time).  We believe that the reason for this is that by the
@@ -469,10 +471,20 @@ but haven't finished doing the work yet.
 
 \section{Related work}
 
-Many domain specific programming languages exist for music synthesis
-[\cite{haskore},\cite{lilypad}].  Many of these languages synthesize
-music in the small ().  By contrast, our approach focuses on using
-large amounts of data to create music...
+Our work is inspired by the music visualization effects included in
+media player software (which traditionally includes effects such as
+oscilloscopes and frequency representations).  However, many domain
+specific programming languages exist for music synthesis.  In
+particular we looked at Haskore \cite{haskore} and
+LilyPond\cite{lilypond}.  Haskore is a language based on Haskell,
+which allows the user to express mathematically beautiful music using
+an algebraic composition strategy.  LilyPond is a specification
+language used to create high quality sheet music (similar to \LaTeX\ 
+for music).  Many of these languages synthesize music in the small,
+using a human based specification language.  By contrast, our approach
+focuses on using large amounts of data to create music: rather than a
+human specification.  We are unaware of any projects that use big data
+to produce art or other forms of entertainment.
 
 \section{Conclusion}
 
