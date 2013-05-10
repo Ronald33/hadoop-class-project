@@ -90,7 +90,8 @@ We are currently unaware of any projects using MapReduce to create art
 or any other representation of digital media.  Because of this, we
 anticipate that there might be problems in handling media (buffering,
 representing, etc..).  We anticipate that exploring this area might
-open up potential applications.
+open up potential applications involving creation of art using amounts
+of data never before considered possible.
 
 \section{Overview}
 \label{sec:overview}
@@ -108,9 +109,10 @@ instruments.
 Our system takes in ordered sets of images and produces a MIDI file.
 The input format is JPEG images: this is a very commonly used lossy
 compression format.  Since we used input corpuses from the internet,
-using JPEG worked for the variety of input formats.  Using JPEG as the
-input format is also attractive because it can be easily unpacked by
-the Java \code{ImageBuffer} class.  
+many of the publicly available image sets are natively distributed in
+JPEG.  Using JPEG as the input format is also attractive because it
+can be easily unpacked by the Java \code{ImageBuffer} class, which we
+use throughout our implementation.
 
 The output of our MapReduce phases is MIDI music.  MIDI is a simple
 format for writing music which can be mixed ans synthesized using
@@ -145,6 +147,7 @@ Figure~\ref{fig:images-to-music}.
   \caption{Mapping a stream of three images to a nine piece musical
     score.  First each image is mapped into regions, which will be
     transformed into notes and combined into a score using a mixer.}
+  \label{fig:images-to-music}
 \end{figure*}
   
 \begin{figure}
@@ -158,9 +161,10 @@ Figure~\ref{fig:images-to-music}.
 
 To convert image data to musical notes, we need to establish a
 bijection between the data in the image and the range of music in the
-song.  The way we do this is inspired by viewing colors in images as
-HSV values.  In HSV, each color has three components: a hue, a
-saturation, and a value.  These components are visualized (as shown in
+song.  The way we do this is inspired by viewing colors in images
+using a slightly unconventional color representation system: HSV.  In
+HSV, each color has three components: a hue, a saturation, and a
+value.  These components are visualized (as shown in
 Figure~\ref{fig:hsv}) as a cylinder (as opposed to RGB, which views
 the color space as a cube).  Each component represents:
 
@@ -178,12 +182,12 @@ the color space as a cube).  Each component represents:
   visualized by going up the cylinder.
 \end{enumerate}
 
-In our transformation to music, we map colors in HSV to notes in MIDI.
-We do this by overlaying the circle of fifths (a circle representing
-pleasing intervals called fifths in music theory) onto the circle
-representing hue in HSV.  We establish the octave of the produced note
-using the value of the color in HSV, and the volume of the note using
-the saturation.
+In our transformation to music, we map colors (natively in RGB) to HSV
+and then to notes in MIDI.  We do this by overlaying the circle of
+fifths (a circle representing pleasing intervals called fifths in
+music theory) onto the circle representing hue in HSV.  We establish
+the octave of the produced note using the value of the color in HSV,
+and the volume of the note using the saturation.
 
 \subsection{Generating music}
 \label{sec:generating}
@@ -250,8 +254,8 @@ of MapReduce jobs, along with sets of helper scripts
 
 Conversion to music happens by doing operations on colors and image
 data.  To do the conversion to tone, velocity pairs, we transform
-colors in the input data, meaning that we have to start with a
-representation of $R$ colors for each image.  To do this
+regions in the input data, meaning that we have to start with a
+representation of $n$ regions for each image.  To do this
 transformation, we considered using a MapReduce job: mapping over the
 sets of images in our input corpus.  Ultimately we found that
 converting images to thumbnails was better accomplished using scripts:
