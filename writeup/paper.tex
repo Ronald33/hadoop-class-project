@@ -145,7 +145,7 @@ Figure~\ref{fig:images-to-music}.
     transformed into notes and combined into a score using a mixer.}
 \end{figure*}
   
-\begin{figure}[h]
+\begin{figure}
   \centering
   \includegraphics[width=.4\textwidth]{hsv.png}
   \caption{The HSV color cylinder}
@@ -259,31 +259,33 @@ to Java and pass in our input corpus to the initial stage of
 MapReduce.  Our current implementation uses the RMagick \cite{rmagick}
 gem, which is a Ruby library interfacing to ImageMagick
 \cite{imagemagick}.  ImageMagick includes facilities for taking images
-to thumbnails.
+to thumbnails, we simply use the RMagick library to preprocess all of
+our images so that they are in the correct dimensions and are of the
+proper size.
 
-\begin{figure}
-\begin{lstlisting}[language=Ruby]
-require 'rmagick'
+%% \begin{figure}
+%% \begin{lstlisting}[language=Ruby]
+%% require 'rmagick'
 
-class ThumbMaker
-  # Convert set of images to thumbnails
-  def self.convert_thumbs(dir_path, size)
-      # ... 
-      puts "Making thumbnail for..."
-      Dir.glob("#{path}/*.jpg") do |fname|
-        # ...
-        fname = # ...
-        img = Magick::Image.read(fname)[0]
-        thumb = img.thumbnail(size, size)
-        thumb.write(thumb_dest)
-      end
-    end
-end
+%% class ThumbMaker
+%%   # Convert set of images to thumbnails
+%%   def self.convert_thumbs(dir_path, size)
+%%       # ... 
+%%       puts "Making thumbnail for..."
+%%       Dir.glob("#{path}/*.jpg") do |fname|
+%%         # ...
+%%         fname = # ...
+%%         img = Magick::Image.read(fname)[0]
+%%         thumb = img.thumbnail(size, size)
+%%         thumb.write(thumb_dest)
+%%       end
+%%     end
+%% end
 
-\end{lstlisting}
-\caption{Relevant code from the module used for image to thumbnail
-  conversion}
-\end{figure}
+%% \end{lstlisting}
+%% \caption{Relevant code from the module used for image to thumbnail
+%%   conversion}
+%% \end{figure}
 
 \subsection{Conversion to intermediate representation}
 \label{sec:conversion}
