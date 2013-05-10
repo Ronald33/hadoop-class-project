@@ -329,23 +329,25 @@ to do this.
 \subsection{Translating to note, region pairs}
 
 After taking the image data to an intermediate format, we must map the
-image data to a set of note / region pairs for use in the MIDI.  To do
-this, we map a conversion function across each of the different
-portions of each image.  The conversion happens by mapping over our
-set of images in the \code{Image2MusicMR} class.  The input of this
-reducer is a set of key/value pairs which constitute the image number
-and image data (a set of integers representing each pixel in the
-image).  The output of the image to music conversion is $n$ sets of
-note lists (where notes are expressed as pairs).  This is stored as a
-set of key/value pairs where the key is the region number and image
-number pair (subsequently discussed, but used for secondary sorting)
-and the part number and MIDI note.
+image data to a set of note / region pairs for use in producing MIDI
+output.  To do this, we map a conversion function across each region
+of each image.  The conversion happens by mapping over our set of
+images in the \code{Image2MusicMR} class.  The input of this mapper is
+a set of key/value pairs which constitute the image number and image
+data (a set of integers representing each pixel in the image).  The
+output of the image to music conversion is $n$ sets of note lists
+(where notes are expressed as pairs).  The reducer takes each part of
+the sore and combines it into a resulting MIDI file.  This is stored
+as a set of key/value pairs where the key is the region number and
+image number pair (subsequently discussed, but used for secondary
+sorting) and the part number and MIDI note.
 
 The strategy used in the conversion is to map over each pixel in an
 image, apply the conversion function, and emit it to a reducer to
 collate together.  After mapping over each pixel, we need to end up
-with a stream of images for each region: a na\"{i}ve implementation simply
-maps each pixel in our input corpus to these tone, velocity pairs:
+with a stream of images for each region: a na\"{i}ve implementation
+simply maps each pixel in our input corpus to these tone, velocity
+pairs:
 
 \[
   map : id \times (r,g,b) \to region \times (tone \times velocity)
