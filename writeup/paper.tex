@@ -90,7 +90,8 @@ We are currently unaware of any projects using MapReduce to create art
 or any other representation of digital media.  Because of this, we
 anticipate that there might be problems in handling media (buffering,
 representing, etc..).  We anticipate that exploring this area might
-open up potential applications.
+open up potential applications involving creation of art using amounts
+of data never before considered possible.
 
 \section{Overview}
 \label{sec:overview}
@@ -108,9 +109,10 @@ instruments.
 Our system takes in ordered sets of images and produces a MIDI file.
 The input format is JPEG images: this is a very commonly used lossy
 compression format.  Since we used input corpuses from the internet,
-using JPEG worked for the variety of input formats.  Using JPEG as the
-input format is also attractive because it can be easily unpacked by
-the Java \code{ImageBuffer} class.  
+many of the publicly available image sets are natively distributed in
+JPEG.  Using JPEG as the input format is also attractive because it
+can be easily unpacked by the Java \code{ImageBuffer} class, which we
+use throughout our implementation.
 
 The output of our MapReduce phases is MIDI music.  MIDI is a simple
 format for writing music which can be mixed ans synthesized using
