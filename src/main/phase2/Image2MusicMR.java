@@ -1,6 +1,5 @@
 package phase2;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.Arrays;
 
