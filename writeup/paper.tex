@@ -8,6 +8,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{rotating}
+\usepackage{geometry}
 \usepackage{amssymb}
 \usepackage{url}
 \usepackage[splitrule]{footmisc}
@@ -36,7 +37,9 @@ stringstyle=\color{orange}}
 % --- Author Metadata here ---
 % --- End of Author Metadata ---
 
-\title{Using Big Data for Music Synthesis}
+\title{MapReduce to My Ears\\
+{\Large Using Big Data for Music Synthesis}
+}
 
 %%\numberofauthors{3}
 \author{
@@ -82,24 +85,52 @@ The core idea in converting image data to music is to view the
 information in an image (color, size, opacity, etc..) as a mapping to
 notes and durations with which those notes are sustained.  In our
 system we chose MIDI as the output format.  Our system can then be
-modeled as a function \kris{transducer?} from image data to MIDI
-output.  Note that the choice of MIDI limits the expressivity of our
-music.  Going to other formats (e.g., MP3, OOG, etc..) could provide a
-larger range of primitives with which to construct music, but does not
-enjoy the simplicity that MIDI provides.
+modeled as a function from image data to MIDI output.  Note that the
+choice of MIDI limits the expressivity of our music.  Going to other
+formats (such as MP3 or OOG) could provide a larger range of
+primitives with which to construct music, but does not enjoy the
+simplicity that MIDI provides.
 
-Our system is modeled as a function from ordered sets of images to a
-MIDI file.  In our view, a MIDI file consists of note and duration
-pairs.  Taken together, these constitute a score by chaining together
-multiple pairs over the course of time:
+Our system takes in ordered sets of images and produces a MIDI file.
+In our view, a MIDI file consists of note and duration pairs.  Taken
+together, these constitute a score by chaining together multiple pairs
+over the course of time:
 
 \[
 MIDI : (Note,Duration)^{\ast}
 \]
 
-%% \[
-%%     f : image^{\ast} \to (
-%% \]
+However, producing a MIDI score with only a single instrument would
+sound broing (akin to a song with only one player): instead we take
+pieces of images and map them into different parts.  Each of these
+parts constitutes an instrument and --- when mixed together ---
+produces a final score.  An illustration of the core idea is shown in
+Figure~\ref{fig:images-to-music}.
+
+\begin{figure*}
+  \centering
+  \begin{minipage}[t]{.3\textwidth}
+    \centering
+    \includegraphics[width=.7\textwidth]{images-to-regions.png}
+  \end{minipage}
+  \begin{minipage}[t]{.1\textwidth}
+    \raisebox{.8 in}{\Huge $\to$}
+  \end{minipage}
+  \begin{minipage}[t]{.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{parts-and-instruments.png}
+  \end{minipage}
+  \caption{Mapping a stream of three images to a nine piece musical
+    score.  First each image is mapped into regions, which will be
+    transformed into notes and combined into a score using a mixer.}
+\end{figure*}
+  
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.4\textwidth]{hsv.png}
+  \caption{The HSV color cylinder}
+  \label{fig:hsv}
+\end{figure}
 
 \subsection{The HSV format}
 
@@ -108,35 +139,29 @@ bijection between the data in the image and the range of music in the
 song.  The way we do this is inspired by viewing colors in images as
 HSV values.  In HSV, each color has three components: a hue, a
 saturation, and a value.  These components are visualized (as shown in
-Figure~\ref{fig:hsv}) using a wheel.  The components represent:
+Figure~\ref{fig:hsv}) as a cylinder (as opposed to RGB, which views
+the color space as a cube).  Each component represents:
 
 \begin{enumerate}
-\item Hue --- The actual ``color'' that would be described.  At full
+\item Hue: The actual ``color'' that would be described.  At full
   saturation and value, the hue determines the color seen.  This is
   visualized as going around a wheel of colors.
 
-\item Saturation --- The degree to which the color is saturated from
+\item Saturation: The degree to which the color is saturated from
   white.  Zero saturation is a blank (white) surface, while increasing
   values show more permeance of color.
 
-\item Value --- The amount of light in the color.  Colors with low
-  values are dark, and those with higher values are brighter.  This is
+\item Value: The amount of light in the color.  Colors with low values
+  are dark, and those with higher values are brighter.  This is
   visualized by going up the cylinder.
 \end{enumerate}
 
-\kris{Here I'm going to draw a diagram which shows two points on the
-  HSV wheel and a musical clef, illustrating the position.}
-
 In our transformation to music, we map colors in HSV to notes in MIDI.
-To do this, we map colors in RGB to HSV using the \code{\#RGBtoHSV}
-method of the \code{java.awt.Color} class.
-
-\begin{figure}
-  \centering
-  \includegraphics[width=.4\textwidth]{hsv.png}
-  \caption{The HSV color cylinder}
-  \label{fig:hsv}
-\end{figure}
+We do this by overlaying the circle of fifths (a circle representing
+pleasing intervals called fifths in music theory) onto the circle
+representing hue in HSV.  We establish the octave of the produced note
+using the value of the color in HSV, and the volume of the note using
+the saturation.
 
 \subsection{Generating music}
 \label{sec:generating}
@@ -184,23 +209,6 @@ up over ten octaves.
 We represent each region of the image by a representative color, which
 is obtained (as noted previously) using thumbnailing.
 
-\begin{figure}
-\centering
-\begin{subfigure}{.5\textwidth}
-  \centering
-  \includegraphics[width=.4\linewidth]{image1}
-  \caption{A subfigure}
-  \label{fig:sub1}
-\end{subfigure}%
-\begin{subfigure}{.5\textwidth}
-  \centering
-  \includegraphics[width=.4\linewidth]{image1}
-  \caption{A subfigure}
-  \label{fig:sub2}
-\end{subfigure}
-\caption{A figure with two subfigures}
-\label{fig:test}
-\end{figure}
 
 \section{Implementation}
 
@@ -213,9 +221,10 @@ is obtained (as noted previously) using thumbnailing.
 
 Our implementation consists of scripts to transform the input,
 MapReduce phases, and a music mixing tool.  The high level pipeline is
-shown in Figure~\ref{fig:project-pipeline}.
+shown in Figure~\ref{fig:project-pipeline}.  It consists of a sequence
+of MapReduce jobs, along with sets of helper scripts 
 
-\paragraph{Conversion of images to thumbnails}
+\subsection{Conversion of images to thumbnails}
 
 Conversion to music happens by doing operations on colors and image
 data.  To do the conversion to tone, velocity pairs, we transform
@@ -256,7 +265,7 @@ end
   conversion}
 \end{figure}
 
-\paragraph{Conversion to intermediate representation}
+\subsection{Conversion to intermediate representation}
 \label{sec:conversion}
 
 Image data comes in a variety of different formats: JPEG, GIF, PNG,
@@ -291,17 +300,18 @@ to do this.
 
 \begin{figure}
 \begin{lstlisting}[language=Java]
-public class WriteImagesToSequenceFile {
+public class WriteImagesToSequenceFile
+{
   BufferedImage img = null;
   SequenceFile.Writer writer = null;
-  FileSystem fs = FileSystem.get(conf);
-
+  FileSystem fs = 
+      FileSystem.get(conf);
   FileStatus[] fss = 
-    fs.globStatus(new Path(inputPath 
+    fs.globStatus(new Path(input 
       + "/*.jpg"));
-
-  writer = SequenceFile.createWriter(fs, 
-    conf, outPath, IntWritable.class,
+  writer = SequenceFile
+      .createWriter(fs, 
+    conf,outPath,IntWritable.class,
     ArrayListOfIntsWritable.class);
   int counter = 0;
   for (FileStatus status : fss) {
@@ -310,22 +320,20 @@ public class WriteImagesToSequenceFile {
     ArrayListOfIntsWritable 
       pixelData = 
         new ArrayListOfIntsWritable();
-
     img = ImageIO.read(
       new File(status.getPath()
-               .toString().substring(5)));
-
-    // Get the RBG integer for each pixel 
-    // in 3X3
+           .toString().substring(5)));
+    // Get RBG integer for each pixel 
     for(int j = 0; j < thumbs; j++) {
       for(int i = 0; i< thumbs; i++) {
-        pixelData.add(img.getRGB(i,j));
+        pixelData
+          .add(img.getRGB(i,j));
       }
     }
-    
     // Write to the sequence file
     image_counter.set(counter);
-    writer.append(image_counter, pixelData);
+    writer.append(image_counter,
+      pixelData);
     counter += 1;
   } 
 }
@@ -334,7 +342,7 @@ public class WriteImagesToSequenceFile {
   format used in sequence files throughout the MapReduce jobs.}
 \end{figure}
 
-\paragraph{Translating to note, region pairs}
+\subsection{Translating to note, region pairs}
 
 After taking the image data to an intermediate format, we must map the
 image data to a set of note / region pairs for use in the MIDI.  To do
@@ -347,7 +355,7 @@ expressed as pairs).
 The strategy used in the conversion is to map over each pixel in an
 image, apply the conversion function, and emit it to a reducer to
 collate together.  After mapping over each pixel, we need to end up
-with a stream of images for each region: a naive implementation simply
+with a stream of images for each region: a na\"{i}ve implementation simply
 maps each pixel in our input corpus to these tone, velocity pairs:
 
 \[
@@ -363,6 +371,38 @@ fix this, we perform secondary sorting on the input ID:
 \[
   map : id \times (r,g,b) \to (id \times region) \times (tone \times velocity)
 \]
+
+A snippet of our mapper is shown in
+Figure~\ref{figure:colortomusic-mapper}.  
+
+\begin{figure}
+\label{figure:colortomusic-mapper}
+\begin{lstlisting}[language=Java]
+public void map(IntWritable key, 
+    ArrayListOfIntsWritable pixels,
+    Context context)
+  throws IOException, InterruptedException {
+  int regionCounter = 1;
+  MidiNote midiNote = null;
+  for(int i = 0; i < pixels.size(); i++){
+    pixel = pixels.get(i);
+    // Conversion from color to note
+    midiNote = Color2Music
+      .convert(new Color(pixel));
+    REGION_IMAGENO.set(regionCounter,
+      key.get());
+    NOTE_VELOCITY.set(midiNote.getTone(),
+      midiNote.getVelocity());
+    context.write(REGION_IMAGENO, NOTE_VELOCITY);
+    regionCounter++;
+  }
+}
+\end{lstlisting}
+\caption{A portion of our mapper that takes color data to MIDI notes.
+  For each pixel in the original image, the conversion in
+  \code{Color2Music} is applied before setting the output key (as a
+  region, number pair).}
+\end{figure}
 
 
 
