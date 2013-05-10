@@ -54,14 +54,16 @@ stringstyle=\color{orange}}
 \begin{abstract}
 Every young computer scientist learns early in their career that all
 data regardless of its meaning are all the same in their underlying
-representation - simple ones and zeroes. It is only in the act of
+representation - simple ones and zeroes.
+ It is only in the act of
 reading and subsequently interpreting those data that computer
 scientists or their creations give meaning to the bits and bytes.
 MapReduce to My Ears is an exercise in the reinterpretation of data
 meant to be understood as color and picture into sound and music.
 Our method uses Hadoop, an open source implementation of the MapReduce
 programming paradigm, to process a large corpus of images and extract
-a musical representation. We have produce a six minutes and
+a musical representation.
+ We have produce a six minutes and
 thirty-five second audio/visual entitled \emph{Digital Nightmare}, the
 style of which can be described as 8-bit, blast beat.
 \end{abstract}
@@ -104,9 +106,17 @@ mixed by many synthesizers to produce music using a variety of
 instruments.
 
 Our system takes in ordered sets of images and produces a MIDI file.
-In our view, a MIDI file consists of note and duration pairs.  Taken
-together, these constitute a score by chaining together multiple pairs
-over the course of time:
+The input format is JPEG images: this is a very commonly used lossy
+compression format.  Since we used input corpuses from the internet,
+using JPEG worked for the variety of input formats.  Using JPEG as the
+input format is also attractive because it can be easily unpacked by
+the Java \code{ImageBuffer} class.  
+
+The output of our MapReduce phases is MIDI music.  MIDI is a simple
+format for writing music which can be mixed ans synthesized using
+software.  At an abstract level, a MIDI file consists of note and
+duration pairs.  Taken together, these constitute a score by chaining
+together multiple pairs over the course of time:
 
 \[
 MIDI : (Note,Duration)^{\ast}
@@ -137,7 +147,7 @@ Figure~\ref{fig:images-to-music}.
     transformed into notes and combined into a score using a mixer.}
 \end{figure*}
   
-\begin{figure}[h]
+\begin{figure}
   \centering
   \includegraphics[width=.4\textwidth]{hsv.png}
   \caption{The HSV color cylinder}
@@ -251,35 +261,36 @@ to Java and pass in our input corpus to the initial stage of
 MapReduce.  Our current implementation uses the RMagick \cite{rmagick}
 gem, which is a Ruby library interfacing to ImageMagick
 \cite{imagemagick}.  ImageMagick includes facilities for taking images
-to thumbnails.
+to thumbnails, we simply use the RMagick library to preprocess all of
+our images so that they are in the correct dimensions and are of the
+proper size.
 
-\begin{figure}
-\begin{lstlisting}[language=Ruby]
-require 'rmagick'
+%% \begin{figure}
+%% \begin{lstlisting}[language=Ruby]
+%% require 'rmagick'
 
-class ThumbMaker
-  # Convert set of images to thumbnails
-  def self.convert_thumbs(dir_path, size)
-      # ... 
-      puts "Making thumbnail for..."
-      Dir.glob("#{path}/*.jpg") do |fname|
-        # ...
-        fname = # ...
-        img = Magick::Image.read(fname)[0]
-        thumb = img.thumbnail(size, size)
-        thumb.write(thumb_dest)
-      end
-    end
-end
+%% class ThumbMaker
+%%   # Convert set of images to thumbnails
+%%   def self.convert_thumbs(dir_path, size)
+%%       # ... 
+%%       puts "Making thumbnail for..."
+%%       Dir.glob("#{path}/*.jpg") do |fname|
+%%         # ...
+%%         fname = # ...
+%%         img = Magick::Image.read(fname)[0]
+%%         thumb = img.thumbnail(size, size)
+%%         thumb.write(thumb_dest)
+%%       end
+%%     end
+%% end
 
-\end{lstlisting}
-\caption{Relevant code from the module used for image to thumbnail
-  conversion}
-\end{figure}
+%% \end{lstlisting}
+%% \caption{Relevant code from the module used for image to thumbnail
+%%   conversion}
+%% \end{figure}
 
 \subsection{Conversion to intermediate representation}
 \label{sec:conversion}
-
 Image data comes in a variety of different formats: JPEG, GIF, PNG,
 etc..  Dealing with the plethora of formats presents a problem for our
 translation because there are many artifacts of the formats
@@ -287,18 +298,19 @@ translation because there are many artifacts of the formats
 for our implementation.  To keep the core abstraction of images as
 arrays of bytes (the abstraction described in
 Section~\ref{sec:overview}) the first stage of our Hadoop
-implementation\footnote{\code{src/main/phase1}} converts the surface
-image representation to the sequence file format used in subsequent
-processing.  Although it may appear inefficient to hold an
-uncompressed image in memory, this is actually ideal for Hadoop:
-because computing cycles (incurred through recompressing and sending
-the images) are the cost, compared with network traffic.
+implementation converts the surface image representation to the
+sequence file format used in subsequent processing.  Although it may
+appear inefficient to hold an uncompressed image in memory, this is
+actually ideal for Hadoop: because computing cycles (incurred through
+recompressing and sending the images) are the cost, compared with
+network traffic.
 
-The conversion in our prototype uses the java \code{ImageBuffer} class
-to do image input and conversion.  This class holds requires a large
-amount of memory to represent image objects, however this is fine
-because we hold only a small number of images in memory at any one
-time (using statics) when mapping over our input corpus.
+The conversion in our prototype uses the java \code{ImageBuffer}
+class to do image input and conversion.  This class holds requires a
+large amount of memory to represent image objects, however this is
+fine because we hold only a small number of images in memory at any
+one time (using statics) when mapping over our input corpus.
+
 
 Our implementation for this conversion happens in the
 \code{WriteImagesToSequenceFile} class.  They key novelty in this
@@ -310,59 +322,20 @@ Writable instance to serialize to a \code{SequenceFile} at a later
 point, but given the simplicity of our representation we say no need
 to do this.
 
-\begin{figure}
-\begin{lstlisting}[language=Java]
-public class WriteImgsToSequence
-{
-  BufferedImage img = null;
-  SequenceFile.Writer writer=null;
-  FileSystem fs = 
-      FileSystem.get(conf);
-  FileStatus[] fss = 
-    fs.globStatus(new Path(input 
-      + "/*.jpg"));
-  writer = SequenceFile
-      .createWriter(fs, 
-    conf,outPath,IntWritable.class,
-    ArrayListOfIntsWritable.class);
-  int counter = 0;
-  for (FileStatus status : fss) {
-    IntWritable image_counter = 
-      new IntWritable();
-    ArrayListOfIntsWritable 
-     pixelData = 
-      new ArrayListOfIntsWritable();
-    img = ImageIO.read(
-      new File(status.getPath()
-         .toString().substring(5)));
-    // Get RBG for each pixel 
-    for(int j = 0; j<thumbs; j++) {
-     for(int i = 0; i<thumbs; i++) {
-        pixelData
-          .add(img.getRGB(i,j));
-      }
-    }
-    // Write to the sequence file
-    image_counter.set(counter);
-    writer.append(image_counter,
-      pixelData);
-    counter += 1;
-  } 
-}
-\end{lstlisting}
-\caption{Snippet of code from \code{WriteToSequenceFile} showing
-  format used in sequence files throughout the MapReduce jobs.}
-\end{figure}
-
 \subsection{Translating to note, region pairs}
 
 After taking the image data to an intermediate format, we must map the
 image data to a set of note / region pairs for use in the MIDI.  To do
 this, we map a conversion function across each of the different
 portions of each image.  The conversion happens by mapping over our
-set of images in the \code{Image2MusicMR} class.  The output of the
-image to music conversion is $n$ sets of note lists (where notes are
-expressed as pairs).  
+set of images in the \code{Image2MusicMR} class.  The input of this
+reducer is a set of key/value pairs which constitute the image number
+and image data (a set of integers representing each pixel in the
+image).  The output of the image to music conversion is $n$ sets of
+note lists (where notes are expressed as pairs).  This is stored as a
+set of key/value pairs where the key is the region number and image
+number pair (subsequently discussed, but used for secondary sorting)
+and the part number and MIDI note.
 
 The strategy used in the conversion is to map over each pixel in an
 image, apply the conversion function, and emit it to a reducer to
@@ -383,41 +356,6 @@ fix this, we perform secondary sorting on the input ID:
 \[
   map : id \times (r,g,b) \to (id \times region) \times (tone \times velocity)
 \]
-
-A snippet of our mapper is shown in
-Figure~\ref{figure:colortomusic-mapper}.  
-
-\begin{figure}
-\label{figure:colortomusic-mapper}
-\begin{lstlisting}[language=Java]
-public void map(IntWritable key, 
-    ArrayListOfIntsWritable pixels,
-    Context context)
-{
-  int regionCounter = 1;
-  MidiNote midiNote = null;
-  for(int i=0; i<pixels.size();i++){
-    pixel = pixels.get(i);
-    // Conversion from color to note
-    midiNote = Color2Music
-      .convert(new Color(pixel));
-    REGION_IMAGENO.set(regionCounter,
-      key.get());
-    NOTE_VELOCITY.set(midiNote.getTone(),
-      midiNote.getVelocity());
-    context.write(REGION_IMAGENO,
-       NOTE_VELOCITY);
-    regionCounter++;
-  }
-}
-\end{lstlisting}
-\caption{A portion of our mapper that takes color data to MIDI notes.
-  For each pixel in the original image, the conversion in
-  \code{Color2Music} is applied before setting the output key (as a
-  region, number pair).}
-\end{figure}
-
-
 
 \subsection{Mixing and producing playable music}
 
@@ -497,18 +435,6 @@ focuses on using large amounts of data to create music: rather than a
 human specification.  We are unaware of any projects that use big data
 to produce art or other forms of entertainment.
 
-\subsection{Reflection on Results}
-
-One might describe our final piece, \emph{Digital Nightmare}, as an unrelenting flood of almost patternless musical information.
-This characteristic emerges from some simplifications in design choices that a later vernon of our process would look to address.
-Here we present a list of such areas and possible solutions.
-\begin{itemized}
-\item Each instrument plays a note during every musical time unit (beat). This results in constant note information without any space for the listener to "catch up".  Darker colors below some threshold of brightness could all be translated into musical rests.
-\item Each note played last only one beat, i.e quarter notes are the only length note used.  Consecutive image regions with similar colors could be "strung together" cause some instruments to play longer notes.
-\item Late on in the process, we moved from saturation mapping to velocity to choosing a fixed velocity of 127.  We found that velocity dynamics were not so perceptible with the degree of musical production we were willing to invest.  Spending more time in the post-processing phase and focusing on musical dynamics such as volume, panning, etc could improve the contribution of velocity to a musical piece.
-\item In out final piece, saturation did not contribute to velocity, but instead was a component of the octave calculation. This choice was made after observing some short musical pieces and feeling that the color to sound mapping was not as intuitive as we had expected.  This change helped somewhat, but we feel the issue was related to a number of factors including the limitations of the HSB color model to represent the human visual model, the discretization of a continuous range (color is continuous whereas music notes are discrete), and using a constant scale rather than a logarithmic scale to represent musical frequencies (which are inherently logarithmic, each an octave higher is twice the lower octave's frequency).
-\end{itemized}
-
 \section{Conclusion}
 
 
@@ -517,3 +443,4 @@ Here we present a list of such areas and possible solutions.
 \bibliography{paper}
 
 \end{document}
+
